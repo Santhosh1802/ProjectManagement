@@ -6,8 +6,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HomeController {
 
-    @GetMapping("/")
+    @GetMapping("/home")
     public String home(){
         return "Server Available";
+    }
+
+    @GetMapping("/dashboard")
+    public String dashboard(){
+        return "Dashboard Available";
     }
 }
