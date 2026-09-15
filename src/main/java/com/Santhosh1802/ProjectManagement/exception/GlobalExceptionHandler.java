@@ -1,5 +1,7 @@
 package com.Santhosh1802.ProjectManagement.exception;
 
+import com.Santhosh1802.ProjectManagement.exception.project.ProjectAlreadyExistException;
+import com.Santhosh1802.ProjectManagement.exception.project.ProjectNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserPasswordInvalidException;
@@ -74,4 +76,34 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(error);
     }
+
+    @ExceptionHandler(ProjectNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProjectNotFoundException(UserNotFoundException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Project Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(ProjectAlreadyExistException.class)
+    public ResponseEntity<ErrorResponse> handleProjectAlreadyExistException(UserAlreadyExistException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Project Already Exists",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
+
 }
