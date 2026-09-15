@@ -1,22 +1,13 @@
 package com.Santhosh1802.ProjectManagement.controller;
 
 import com.Santhosh1802.ProjectManagement.dto.request.user.*;
-import com.Santhosh1802.ProjectManagement.dto.response.user.CreateUserResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.service.UserService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -34,8 +25,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+
 
     /*
      * create new user
@@ -46,9 +36,9 @@ public class UserController {
      * @throws MethodArgumentNotValidException if fields are not valid
      * */
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<CreateUserResponse>> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
-        CreateUserResponse createUserResponse = userService.createUser(createUserRequest);
-        ApiResponse<CreateUserResponse> response = new ApiResponse<>(
+    public ResponseEntity<ApiResponse<GetUserResponse>> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
+        GetUserResponse createUserResponse = userService.createUser(createUserRequest);
+        ApiResponse<GetUserResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.CREATED.value(),
                 "User created successfully",
@@ -160,7 +150,7 @@ public class UserController {
     * @throws UserNotFoundException if user is not found of id
     * @throws MethodArgumentNotValidException if fields are not valid
     * */
-    @DeleteMapping("/")
+    @DeleteMapping("/delete")
     public ResponseEntity<ApiResponse<Boolean>> deleteUser(@Valid @RequestBody DeleteUserRequest deleteUserRequest){
         boolean deleteResponse = userService.deleteUser(deleteUserRequest);
 
@@ -201,29 +191,6 @@ public class UserController {
 
 
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<String>> login(@RequestBody LoginUserRequest loginUserRequest, HttpServletRequest request){
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginUserRequest.getEmail(),
-                        loginUserRequest.getPassword()
-                )
-        );
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
 
-        HttpSession session = request.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,context);
-        ApiResponse<String> response = new ApiResponse<>(
-                LocalDateTime.now(),
-                HttpStatus.CONTINUE.value(),
-                "User logged in successfully",
-                null
-        );
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(response);
-    }
 
 }

@@ -1,7 +1,6 @@
 package com.Santhosh1802.ProjectManagement.service;
 
 import com.Santhosh1802.ProjectManagement.dto.request.user.*;
-import com.Santhosh1802.ProjectManagement.dto.response.user.CreateUserResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
@@ -32,8 +31,25 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
 
+    private GetUserResponse returnGetUserResponse(User user) {
+       return new GetUserResponse(user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getUserRole(),
+                user.getIsActive(),
+                user.getEmailVerified(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.getLastLoginAt(),
+                user.getOwnedProjects(),
+                user.getCreatedTasks(),
+                user.getAssignedTasks(),
+                user.getProjectMemberships());
+    }
+
     @Transactional(rollbackFor = {UserAlreadyExistException.class})
-    public CreateUserResponse createUser(CreateUserRequest createUserRequest) {
+    public GetUserResponse createUser(CreateUserRequest createUserRequest) {
         boolean userExist = userRepository.findByEmail(createUserRequest.getEmail()).isPresent();
         if (!userExist) {
             User user = new User();
@@ -48,17 +64,7 @@ public class UserService {
 
             User createdUser = userRepository.save(user);
 
-            return new CreateUserResponse(
-                    createdUser.getId(),
-                    createdUser.getFirstName(),
-                    createdUser.getLastName(),
-                    createdUser.getEmail(),
-                    createdUser.getUserRole(),
-                    createdUser.getIsActive(),
-                    createdUser.getEmailVerified(),
-                    createdUser.getCreatedAt(),
-                    createdUser.getUpdatedAt(),
-                    createdUser.getLastLoginAt());
+            return returnGetUserResponse(createdUser);
         } else {
             throw new UserAlreadyExistException("Email already exists");
         }
@@ -71,20 +77,7 @@ public class UserService {
                 () -> new UserNotFoundException("User not found with id" + getUserByIdRequest.getId())
         );
 
-        return new GetUserResponse(user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getUserRole(),
-                user.getIsActive(),
-                user.getEmailVerified(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.getLastLoginAt(),
-                user.getOwnedProjects(),
-                user.getCreatedTasks(),
-                user.getAssignedTasks(),
-                user.getProjectMemberships());
+        return returnGetUserResponse(user);
 
     }
 
@@ -92,20 +85,7 @@ public class UserService {
         User user = userRepository.findByEmail(getUserByEmailRequest.getEmail()).orElseThrow(() ->
                 new UserNotFoundException("User not found with email" + getUserByEmailRequest.getEmail())
         );
-        return new GetUserResponse(user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getUserRole(),
-                user.getIsActive(),
-                user.getEmailVerified(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.getLastLoginAt(),
-                user.getOwnedProjects(),
-                user.getCreatedTasks(),
-                user.getAssignedTasks(),
-                user.getProjectMemberships());
+        return returnGetUserResponse(user);
     }
 
     public List<GetUserResponse> getUsersBySearch(GetUserBySearchRequest getUserBySearchRequest) {
@@ -114,22 +94,7 @@ public class UserService {
         Page<User> users=userRepository.searchUsers(getUserBySearchRequest.getKeyword(), pageable);
         List<GetUserResponse> userResponseList = new ArrayList<>();
         for (User user : users) {
-            userResponseList.add(new GetUserResponse(
-                    user.getId(),
-                    user.getFirstName(),
-                    user.getLastName(),
-                    user.getEmail(),
-                    user.getUserRole(),
-                    user.getIsActive(),
-                    user.getEmailVerified(),
-                    user.getCreatedAt(),
-                    user.getUpdatedAt(),
-                    user.getLastLoginAt(),
-                    user.getOwnedProjects(),
-                    user.getCreatedTasks(),
-                    user.getAssignedTasks(),
-                    user.getProjectMemberships()
-            ));
+            userResponseList.add(returnGetUserResponse(user));
         }
         return userResponseList;
     }
@@ -143,21 +108,7 @@ public class UserService {
         user.setLastName(updateUserProfileRequest.getLastName());
         user.setEmail(updateUserProfileRequest.getEmail());
         User savedUser = userRepository.save(user);
-        return new GetUserResponse(savedUser.getId(),
-                savedUser.getFirstName(),
-                savedUser.getLastName(),
-                savedUser.getEmail(),
-                savedUser.getUserRole(),
-                savedUser.getIsActive(),
-                savedUser.getEmailVerified(),
-                savedUser.getCreatedAt(),
-                savedUser.getUpdatedAt(),
-                savedUser.getLastLoginAt(),
-                savedUser.getOwnedProjects(),
-                savedUser.getCreatedTasks(),
-                savedUser.getAssignedTasks(),
-                savedUser.getProjectMemberships()
-        );
+        return returnGetUserResponse(savedUser);
     }
 
     @Transactional(rollbackFor = {UserNotFoundException.class, UserPasswordInvalidException.class})
@@ -171,22 +122,7 @@ public class UserService {
         } else {
             user.setPassword(passwordEncoder.encode(updateUserPasswordRequest.getNewPassword()));
             User savedUser = userRepository.save(user);
-            return new GetUserResponse(
-                    user.getId(),
-                    savedUser.getFirstName(),
-                    savedUser.getLastName(),
-                    savedUser.getEmail(),
-                    savedUser.getUserRole(),
-                    savedUser.getIsActive(),
-                    savedUser.getEmailVerified(),
-                    savedUser.getCreatedAt(),
-                    savedUser.getUpdatedAt(),
-                    savedUser.getLastLoginAt(),
-                    savedUser.getOwnedProjects(),
-                    savedUser.getCreatedTasks(),
-                    savedUser.getAssignedTasks(),
-                    savedUser.getProjectMemberships()
-            );
+            return returnGetUserResponse(savedUser);
         }
     }
 

@@ -3,7 +3,6 @@ package com.Santhosh1802.ProjectManagement.service;
 
 import com.Santhosh1802.ProjectManagement.dto.request.user.CreateUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.request.user.GetUserByIdRequest;
-import com.Santhosh1802.ProjectManagement.dto.response.user.CreateUserResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
@@ -114,7 +113,7 @@ public class UserServiceTest {
         when(userRepository.save(any(User.class)))
                 .thenReturn(savedUser);
 
-        CreateUserResponse response = userService.createUser(request);
+        GetUserResponse response = userService.createUser(request);
 
         assertNotNull(response);
         assertEquals("Santhosh",response.getFirstName());
