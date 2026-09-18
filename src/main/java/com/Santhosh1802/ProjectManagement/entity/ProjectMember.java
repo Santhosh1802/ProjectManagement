@@ -2,9 +2,7 @@ package com.Santhosh1802.ProjectManagement.entity;
 
 import com.Santhosh1802.ProjectManagement.util.ProjectRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
@@ -19,7 +17,8 @@ import java.util.UUID;
                 )
         }
 )
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProjectMember {
