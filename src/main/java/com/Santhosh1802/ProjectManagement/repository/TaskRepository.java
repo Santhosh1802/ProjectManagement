@@ -1,6 +1,5 @@
 package com.Santhosh1802.ProjectManagement.repository;
 
-import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.Project;
 import com.Santhosh1802.ProjectManagement.entity.Task;
 import com.Santhosh1802.ProjectManagement.entity.User;
@@ -12,7 +11,7 @@ import java.util.UUID;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
-    public List<Task> findByProject(Project project);
-    public List<Task> findByAssignedTo(User assignedTo);
-    public List<Task> findByCreatedBy(User createdBy);
+    List<Task> findByProject(Project project);
+    List<Task> findByAssignedTo(User assignedTo);
+    List<Task> findByCreatedBy(User createdBy);
 }

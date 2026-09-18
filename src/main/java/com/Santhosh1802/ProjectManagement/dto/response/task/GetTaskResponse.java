@@ -1,7 +1,6 @@
 package com.Santhosh1802.ProjectManagement.dto.response.task;
 
 import com.Santhosh1802.ProjectManagement.dto.response.project.GetProjectResponse;
-import com.Santhosh1802.ProjectManagement.dto.response.projectMember.GetProjectMemberResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.util.TaskPriority;
 import com.Santhosh1802.ProjectManagement.util.TaskStatus;

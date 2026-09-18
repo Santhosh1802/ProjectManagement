@@ -90,7 +90,7 @@ public class ProjectController {
                 .body(response);
 
     }
-    @PutMapping("/update/details")
+    @PutMapping("/update/owner")
     public ResponseEntity<ApiResponse<GetProjectResponse>> updateProjectOwner(@Valid @RequestBody UpdateProjectOwnerRequest updateProjectOwnerRequest){
         GetProjectResponse getProjectResponse = projectService.updateProjectOwner(updateProjectOwnerRequest);
         ApiResponse<GetProjectResponse> response = new ApiResponse<>(
