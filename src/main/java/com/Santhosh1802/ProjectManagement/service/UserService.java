@@ -1,11 +1,15 @@
 package com.Santhosh1802.ProjectManagement.service;
 
 import com.Santhosh1802.ProjectManagement.dto.request.user.*;
+import com.Santhosh1802.ProjectManagement.dto.response.project.GetProjectResponse;
+import com.Santhosh1802.ProjectManagement.dto.response.project.ProjectOwnerResponse;
+import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserOwnedProjectsResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserPasswordInvalidException;
+import com.Santhosh1802.ProjectManagement.repository.ProjectRepository;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import com.Santhosh1802.ProjectManagement.util.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +32,14 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
 
     private GetUserResponse returnGetUserResponse(User user) {
-       return new GetUserResponse(user.getId(),
+        return new GetUserResponse(user.getId(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
@@ -41,11 +48,12 @@ public class UserService {
                 user.getEmailVerified(),
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
-                user.getLastLoginAt(),
-                user.getOwnedProjects(),
-                user.getCreatedTasks(),
-                user.getAssignedTasks(),
-                user.getProjectMemberships());
+                user.getLastLoginAt()
+//                user.getOwnedProjects(),
+//                user.getCreatedTasks(),
+//                user.getAssignedTasks(),
+//                user.getProjectMemberships()
+        );
     }
 
     @Transactional(rollbackFor = {UserAlreadyExistException.class})
@@ -71,6 +79,35 @@ public class UserService {
     }
 
 
+    public GetUserOwnedProjectsResponse getOwnedProjects(GetUserByIdRequest getUserByIdRequest) {
+        User user = userRepository.findById(getUserByIdRequest.getId()).orElseThrow(
+                () -> new UserNotFoundException("User not found with id " + getUserByIdRequest.getId())
+        );
+        List<GetProjectResponse> projects = new ArrayList<>();
+        projectRepository.findProjectsByOwner(user).forEach(project -> {
+            GetProjectResponse projectResponse = new GetProjectResponse(
+                    project.getId(),
+                    project.getName(),
+                    project.getDescription(),
+                    project.getProjectStatus(),
+                    project.getStartDate(),
+                    project.getDueDate(),
+                    new ProjectOwnerResponse(project.getOwner().getId(),
+                            project.getOwner().getFirstName(),
+                            project.getOwner().getLastName(),
+                            project.getOwner().getEmail()),
+                    project.getCreatedAt(),
+                    project.getUpdatedAt()
+            );
+            projects.add(projectResponse);
+        });
+        return new GetUserOwnedProjectsResponse(
+                getUserByIdRequest.getId(),projects
+        );
+
+    }
+
+
     public GetUserResponse getUserById(GetUserByIdRequest getUserByIdRequest) {
 
         User user = userRepository.findById(getUserByIdRequest.getId()).orElseThrow(
@@ -90,8 +127,8 @@ public class UserService {
 
     public List<GetUserResponse> getUsersBySearch(GetUserBySearchRequest getUserBySearchRequest) {
 
-        Pageable pageable = PageRequest.of(getUserBySearchRequest.getPage(), getUserBySearchRequest.getSize(),Sort.by("createdAt").descending());
-        Page<User> users=userRepository.searchUsers(getUserBySearchRequest.getKeyword(), pageable);
+        Pageable pageable = PageRequest.of(getUserBySearchRequest.getPage(), getUserBySearchRequest.getSize(), Sort.by("createdAt").descending());
+        Page<User> users = userRepository.searchUsers(getUserBySearchRequest.getKeyword(), pageable);
         List<GetUserResponse> userResponseList = new ArrayList<>();
         for (User user : users) {
             userResponseList.add(returnGetUserResponse(user));

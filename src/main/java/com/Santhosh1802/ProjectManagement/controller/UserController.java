@@ -1,6 +1,8 @@
 package com.Santhosh1802.ProjectManagement.controller;
 
 import com.Santhosh1802.ProjectManagement.dto.request.user.*;
+import com.Santhosh1802.ProjectManagement.dto.response.project.GetProjectResponse;
+import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserOwnedProjectsResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.service.UserService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
@@ -189,6 +191,20 @@ public class UserController {
                 .body(response);
     }
 
+    @GetMapping("/owned/projects")
+    public ResponseEntity<ApiResponse<GetUserOwnedProjectsResponse>> getUserOwnedProjects(@RequestParam UUID id){
+        GetUserByIdRequest getUserByIdRequest = new GetUserByIdRequest(id);
+        GetUserOwnedProjectsResponse getUserOwnedProjectsResponse = userService.getOwnedProjects(getUserByIdRequest);
+        ApiResponse<GetUserOwnedProjectsResponse> response = new ApiResponse<>(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "Owned projects fetched",
+                getUserOwnedProjectsResponse
+        );
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
+    }
 
 
 

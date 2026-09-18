@@ -6,6 +6,7 @@ import com.Santhosh1802.ProjectManagement.entity.Task;
 import com.Santhosh1802.ProjectManagement.util.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class GetUserResponse {
 
     private UUID id;
@@ -26,8 +28,4 @@ public class GetUserResponse {
     private Instant updatedAt;
     private Instant lastLoginAt;
 
-    private List<Project> ownedProjects;
-    private List<Task> createdTasks;
-    private List<Task> assignedTasks;
-    private List<ProjectMember> projectMemberships;
 }
