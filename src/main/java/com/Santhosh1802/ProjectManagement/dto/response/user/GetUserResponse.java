@@ -1,15 +1,12 @@
 package com.Santhosh1802.ProjectManagement.dto.response.user;
 
-import com.Santhosh1802.ProjectManagement.entity.Project;
-import com.Santhosh1802.ProjectManagement.entity.ProjectMember;
-import com.Santhosh1802.ProjectManagement.entity.Task;
+
 import com.Santhosh1802.ProjectManagement.util.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Data

@@ -1,7 +1,6 @@
 package com.Santhosh1802.ProjectManagement.controller;
 
 import com.Santhosh1802.ProjectManagement.dto.request.user.*;
-import com.Santhosh1802.ProjectManagement.dto.response.project.GetProjectResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserOwnedProjectsResponse;
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.service.UserService;
