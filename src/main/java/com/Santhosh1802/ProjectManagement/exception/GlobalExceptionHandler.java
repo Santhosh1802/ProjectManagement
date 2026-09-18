@@ -2,6 +2,9 @@ package com.Santhosh1802.ProjectManagement.exception;
 
 import com.Santhosh1802.ProjectManagement.exception.project.ProjectAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.project.ProjectNotFoundException;
+import com.Santhosh1802.ProjectManagement.exception.projectMember.ProjectMemberAlreadyExistException;
+import com.Santhosh1802.ProjectManagement.exception.projectMember.ProjectMemberNotFoundException;
+import com.Santhosh1802.ProjectManagement.exception.task.TaskNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserPasswordInvalidException;
@@ -78,7 +81,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ProjectNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleProjectNotFoundException(UserNotFoundException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleProjectNotFoundException(ProjectNotFoundException ex, HttpServletRequest request){
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.NOT_FOUND.value(),
@@ -92,11 +95,53 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ProjectAlreadyExistException.class)
-    public ResponseEntity<ErrorResponse> handleProjectAlreadyExistException(UserAlreadyExistException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleProjectAlreadyExistException(ProjectAlreadyExistException ex, HttpServletRequest request){
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.CONFLICT.value(),
                 "Project Already Exists",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
+    @ExceptionHandler(ProjectMemberNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProjectMemberNotFoundException(ProjectMemberNotFoundException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Project Member Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(ProjectMemberAlreadyExistException.class)
+    public ResponseEntity<ErrorResponse> handleProjectMemberAlreadyExistException(ProjectMemberAlreadyExistException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Project member already exist",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
+    @ExceptionHandler(TaskNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTaskNotFoundException(TaskNotFoundException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Task not found",
                 ex.getMessage(),
                 request.getRequestURI()
         );
