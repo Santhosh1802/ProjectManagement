@@ -82,7 +82,7 @@ public class UserController {
      * @throws MethodArgumentNotValidException if fields are not valid
      * */
     @GetMapping("/email")
-    public ResponseEntity<ApiResponse<GetUserResponse>> getUserById(@RequestParam String email) {
+    public ResponseEntity<ApiResponse<GetUserResponse>> getUserByEmail(@RequestParam String email) {
         GetUserByEmailRequest getUserByEmailRequest = new GetUserByEmailRequest(email);
         GetUserResponse getUserResponse = userService.getUserByEmail(getUserByEmailRequest);
 
