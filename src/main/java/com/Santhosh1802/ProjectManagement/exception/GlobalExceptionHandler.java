@@ -6,6 +6,7 @@ import com.Santhosh1802.ProjectManagement.exception.projectMember.ProjectMemberA
 import com.Santhosh1802.ProjectManagement.exception.projectMember.ProjectMemberNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.task.TaskNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
+import com.Santhosh1802.ProjectManagement.exception.user.UserNotAuthenticatedException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserPasswordInvalidException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,6 +64,20 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(UserNotAuthenticatedException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotAuthenticatedException(UserNotAuthenticatedException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED.value(),
+                "User Not Authenticated",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
                 .body(error);
     }
 

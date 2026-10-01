@@ -1,15 +1,20 @@
 package com.Santhosh1802.ProjectManagement.service;
 
+import com.Santhosh1802.ProjectManagement.dto.request.auth.LoginUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.RegisterUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.response.auth.RegisterUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
+import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import com.Santhosh1802.ProjectManagement.util.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
@@ -52,6 +57,13 @@ public class AuthService {
         }
     }
 
+    @Transactional(rollbackFor = {UserNotFoundException.class})
+    public boolean LoginUser(LoginUserRequest loginUserRequest) {
+        User user = userRepository.findByEmail(loginUserRequest.getEmail()).orElseThrow(() -> new UserNotFoundException("User with email: " + loginUserRequest.getEmail()+ " not found"));
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+        return true;
+    }
 
 
 }

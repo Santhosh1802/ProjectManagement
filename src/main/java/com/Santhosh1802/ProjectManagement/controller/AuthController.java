@@ -3,6 +3,7 @@ package com.Santhosh1802.ProjectManagement.controller;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.LoginUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.RegisterUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.response.auth.RegisterUserResponse;
+import com.Santhosh1802.ProjectManagement.exception.user.UserNotAuthenticatedException;
 import com.Santhosh1802.ProjectManagement.service.AuthService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,11 +64,12 @@ public class AuthController {
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 context
         );
+        boolean loggedIn = authService.LoginUser(loginUserRequest);
         ApiResponse<Boolean> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
                 "User logged in successfully",
-                true
+                loggedIn
         );
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -77,10 +79,11 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Boolean>> logout(HttpServletRequest httpRequest) {
         HttpSession session = httpRequest.getSession(false);
-        if(session != null) {
+        if (session != null) {
             session.invalidate();
         }
         SecurityContextHolder.clearContext();
+
         ApiResponse<Boolean> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
@@ -93,13 +96,24 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(Authentication authentication){
-        String email = authentication.getName();
-        return ResponseEntity.ok(email);
+    public ResponseEntity<ApiResponse<Boolean>> getCurrentUser(Authentication authentication) {
+        if (authentication == null) {
+            throw new UserNotAuthenticatedException("User not authenticated");
+        } else {
+            ApiResponse<Boolean> response = new ApiResponse<>(
+                    LocalDateTime.now(),
+                    HttpStatus.OK.value(),
+                    "User Authenticated",
+                    authentication.isAuthenticated()
+            );
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(response);
+
+        }
     }
 
     @GetMapping("/csrf")
-    public CsrfToken csrf(CsrfToken csrfToken){
+    public CsrfToken csrf(CsrfToken csrfToken) {
         return csrfToken;
     }
 
