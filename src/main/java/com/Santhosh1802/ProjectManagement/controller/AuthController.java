@@ -3,6 +3,7 @@ package com.Santhosh1802.ProjectManagement.controller;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.LoginUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.RegisterUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.response.auth.RegisterUserResponse;
+import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotAuthenticatedException;
 import com.Santhosh1802.ProjectManagement.service.AuthService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
@@ -48,7 +49,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Boolean>> login(@Valid @RequestBody LoginUserRequest loginUserRequest, HttpServletRequest httpRequest) {
+    public ResponseEntity<ApiResponse<GetUserResponse>> login(@Valid @RequestBody LoginUserRequest loginUserRequest, HttpServletRequest httpRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginUserRequest.getEmail(),
@@ -64,12 +65,12 @@ public class AuthController {
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 context
         );
-        boolean loggedIn = authService.LoginUser(loginUserRequest);
-        ApiResponse<Boolean> response = new ApiResponse<>(
+        GetUserResponse user = authService.LoginUser(loginUserRequest);
+        ApiResponse<GetUserResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
                 "User logged in successfully",
-                loggedIn
+                user
         );
         return ResponseEntity
                 .status(HttpStatus.OK)

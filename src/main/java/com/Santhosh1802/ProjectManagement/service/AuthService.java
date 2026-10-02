@@ -3,6 +3,7 @@ package com.Santhosh1802.ProjectManagement.service;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.LoginUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.request.auth.RegisterUserRequest;
 import com.Santhosh1802.ProjectManagement.dto.response.auth.RegisterUserResponse;
+import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
@@ -24,6 +25,20 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    private GetUserResponse returnGetUserResponse(User user) {
+        return new GetUserResponse(user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getUserRole(),
+                user.getIsActive(),
+                user.getEmailVerified(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.getLastLoginAt()
+        );
+    }
 
     @Transactional(rollbackFor = {UserAlreadyExistException.class})
     public RegisterUserResponse registerUser(RegisterUserRequest registerUserRequest) {
@@ -58,11 +73,11 @@ public class AuthService {
     }
 
     @Transactional(rollbackFor = {UserNotFoundException.class})
-    public boolean LoginUser(LoginUserRequest loginUserRequest) {
+    public GetUserResponse LoginUser(LoginUserRequest loginUserRequest) {
         User user = userRepository.findByEmail(loginUserRequest.getEmail()).orElseThrow(() -> new UserNotFoundException("User with email: " + loginUserRequest.getEmail()+ " not found"));
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
-        return true;
+        return returnGetUserResponse(user);
     }
 
 

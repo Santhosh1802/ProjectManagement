@@ -84,14 +84,11 @@ public class ProjectService {
     }
 
     public List<GetProjectResponse> getProjectsByOwner(GetProjectByOwnerIdRequest getProjectByOwnerIdRequest) {
-        List<Project> projects = projectRepository.findAll();
-        List<GetProjectResponse> projectResponses = new ArrayList<>();
-        for (Project project : projects) {
-            if(project.getOwner().getId().equals(getProjectByOwnerIdRequest.getOwnerId())) {
-                projectResponses.add(returnProjectResponse(project));
-            }
-        }
-        return projectResponses;
+        return projectRepository
+                .findByOwnerId(getProjectByOwnerIdRequest.getOwnerId())
+                .stream()
+                .map(this::returnProjectResponse)
+                .toList();
     }
 
 
@@ -120,7 +117,6 @@ public class ProjectService {
             project.setDescription(updateProjectDetailsRequest.getDescription());
             project.setProjectStatus(updateProjectDetailsRequest.getProjectStatus());
             project.setDueDate(updateProjectDetailsRequest.getDueDate());
-            projectRepository.save(project);
             projectRepository.save(project);
             return returnProjectResponse(project);
         }

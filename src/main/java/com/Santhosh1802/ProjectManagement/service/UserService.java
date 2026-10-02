@@ -49,10 +49,6 @@ public class UserService {
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
                 user.getLastLoginAt()
-//                user.getOwnedProjects(),
-//                user.getCreatedTasks(),
-//                user.getAssignedTasks(),
-//                user.getProjectMemberships()
         );
     }
 
@@ -143,6 +139,9 @@ public class UserService {
         );
         user.setFirstName(updateUserProfileRequest.getFirstName());
         user.setLastName(updateUserProfileRequest.getLastName());
+        if(!user.getEmail().equals(updateUserProfileRequest.getEmail())) {
+            user.setEmailVerified(false);
+        }
         user.setEmail(updateUserProfileRequest.getEmail());
         User savedUser = userRepository.save(user);
         return returnGetUserResponse(savedUser);
@@ -150,8 +149,8 @@ public class UserService {
 
     @Transactional(rollbackFor = {UserNotFoundException.class, UserPasswordInvalidException.class})
     public GetUserResponse updateUserPassword(UpdateUserPasswordRequest updateUserPasswordRequest) {
-        User user = userRepository.findByEmail(updateUserPasswordRequest.getEmail()).orElseThrow(() ->
-                new UserNotFoundException("User not found with email: " + updateUserPasswordRequest.getEmail())
+        User user = userRepository.findById(updateUserPasswordRequest.getId()).orElseThrow(() ->
+                new UserNotFoundException("User not found with id: " + updateUserPasswordRequest.getId())
         );
         boolean passwordMatches = passwordEncoder.matches(updateUserPasswordRequest.getOldPassword(), user.getPassword());
         if (!passwordMatches) {
