@@ -1,9 +1,9 @@
 package com.Santhosh1802.ProjectManagement.config;
 
 import com.Santhosh1802.ProjectManagement.service.CustomUserDetailsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,35 +12,73 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
+    private final CustomUserDetailsService userDetailsService;
+
+    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
+    public SecurityContextRepository securityContextRepository() {
+        return new HttpSessionSecurityContextRepository();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config
+    ){
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,SecurityContextRepository securityContextRepository) {
 
         http
+                .securityContext(securityContext ->
+                        securityContext
+                                .securityContextRepository(securityContextRepository)
+                                .requireExplicitSave(true)
+                )
                 .cors(cors -> {})
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(
                                 CookieCsrfTokenRepository.withHttpOnlyFalse()
                         )
                 )
-                .authorizeHttpRequests(auth ->
-                        auth
-                                .requestMatchers("/api/auth/register", "/api/auth/login", "/home","/api/auth/csrf","/api/auth/me").permitAll()
-                                .requestMatchers("/api/**").authenticated()
-                                .anyRequest().authenticated()
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+                .authorizeHttpRequests(auth -> auth
+
+                        // Public endpoints
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/csrf"
+                        ).permitAll()
+
+                        // Authentication required
+                        .requestMatchers("/api/auth/me")
+                        .authenticated()
+
+                        // Everything under API requires authentication
+                        .requestMatchers("/api/**")
+                        .authenticated()
+
+                        // Everything else
+                        .anyRequest()
+                        .authenticated()
                 )
                 .userDetailsService(userDetailsService)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -48,7 +86,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {

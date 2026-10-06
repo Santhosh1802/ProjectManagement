@@ -155,13 +155,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTaskNotFoundException(TaskNotFoundException ex, HttpServletRequest request){
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
+                HttpStatus.NOT_FOUND.value(),
                 "Task not found",
                 ex.getMessage(),
                 request.getRequestURI()
         );
         return ResponseEntity
-                .status(HttpStatus.CONFLICT)
+                .status(HttpStatus.NOT_FOUND)
                 .body(error);
     }
 
