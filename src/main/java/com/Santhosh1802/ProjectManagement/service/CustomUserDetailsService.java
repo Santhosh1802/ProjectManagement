@@ -1,7 +1,6 @@
 package com.Santhosh1802.ProjectManagement.service;
 
 import com.Santhosh1802.ProjectManagement.entity.User;
-import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +18,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException{
         User user = userRepository.findByEmail(email).orElseThrow(()->
-                new UserNotFoundException("User not found of email: "+email)
+                new UsernameNotFoundException("User not found")
         );
 
         return org.springframework.security.core.userdetails.User.builder()
