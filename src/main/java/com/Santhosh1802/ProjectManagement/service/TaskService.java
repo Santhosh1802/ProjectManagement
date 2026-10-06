@@ -17,13 +17,15 @@ import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.repository.ProjectRepository;
 import com.Santhosh1802.ProjectManagement.repository.TaskRepository;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
-import org.jspecify.annotations.NonNull;
+import com.Santhosh1802.ProjectManagement.util.PageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -38,8 +40,17 @@ public class TaskService {
     @Autowired
     private UserRepository userRepository;
 
-    private static @NonNull GetUserResponse getCreatedByResponse(Task task) {
+
+    /**
+     * Converts a Task entity's creator into a GetUserResponse.
+     *
+     * @param task task containing the creator
+     * @return creator information
+     */
+    private GetUserResponse getCreatedByResponse(Task task) {
+
         User createdBy = task.getCreatedBy();
+
         return new GetUserResponse(
                 createdBy.getId(),
                 createdBy.getFirstName(),
@@ -54,8 +65,17 @@ public class TaskService {
         );
     }
 
-    private static @NonNull GetUserResponse getAssignedToResponse(Task task) {
+
+    /**
+     * Converts a Task entity's assigned user into a GetUserResponse.
+     *
+     * @param task task containing the assigned user
+     * @return assigned user information
+     */
+    private GetUserResponse getAssignedToResponse(Task task) {
+
         User assignedTo = task.getAssignedTo();
+
         return new GetUserResponse(
                 assignedTo.getId(),
                 assignedTo.getFirstName(),
@@ -70,8 +90,17 @@ public class TaskService {
         );
     }
 
-    private static @NonNull GetProjectResponse getProjectResponse(Task task) {
+
+    /**
+     * Converts a Task entity's project into a GetProjectResponse.
+     *
+     * @param task task containing the project
+     * @return project information
+     */
+    private GetProjectResponse getProjectResponse(Task task) {
+
         Project project = task.getProject();
+
         return new GetProjectResponse(
                 project.getId(),
                 project.getName(),
@@ -79,19 +108,30 @@ public class TaskService {
                 project.getProjectStatus(),
                 project.getStartDate(),
                 project.getDueDate(),
-                new ProjectOwnerResponse(project.getOwner().getId(),
+                new ProjectOwnerResponse(
+                        project.getOwner().getId(),
                         project.getOwner().getFirstName(),
                         project.getOwner().getLastName(),
-                        project.getOwner().getEmail()),
+                        project.getOwner().getEmail()
+                ),
                 project.getCreatedAt(),
                 project.getUpdatedAt()
         );
     }
 
+
+    /**
+     * Converts a Task entity into a GetTaskResponse.
+     *
+     * @param task task entity
+     * @return task response
+     */
     private GetTaskResponse returnGetTaskResponse(Task task) {
+
         GetProjectResponse projectResponse = getProjectResponse(task);
         GetUserResponse assignedToResponse = getAssignedToResponse(task);
         GetUserResponse createdByResponse = getCreatedByResponse(task);
+
         return new GetTaskResponse(
                 task.getId(),
                 task.getTitle(),
@@ -107,18 +147,85 @@ public class TaskService {
         );
     }
 
-    @Transactional(rollbackFor = {ProjectNotFoundException.class, UserNotFoundException.class})
-    public GetTaskResponse createTask(CreateTaskRequest createTaskRequest) {
-        Project project = projectRepository.findById(createTaskRequest.getProjectId()).orElseThrow(() ->
-                new ProjectNotFoundException("Project of id : " + createTaskRequest.getProjectId() + " not found")
+
+    /**
+     * Converts a page of Task entities into a paginated task response.
+     *
+     * @param taskPage page containing Task entities
+     * @return paginated task response
+     */
+    private PageResponse<GetTaskResponse> createPageResponse(
+            Page<Task> taskPage
+    ) {
+
+        return new PageResponse<>(
+                taskPage.getContent()
+                        .stream()
+                        .map(this::returnGetTaskResponse)
+                        .toList(),
+                taskPage.getNumber(),
+                taskPage.getSize(),
+                taskPage.getTotalElements(),
+                taskPage.getTotalPages(),
+                taskPage.isFirst(),
+                taskPage.isLast()
         );
-        User assignedTo = userRepository.findById(createTaskRequest.getAssignedToId()).orElseThrow(() ->
-                new UserNotFoundException("User of id : " + createTaskRequest.getAssignedToId() + " not found")
-        );
-        User createdBy = userRepository.findById(createTaskRequest.getCreatedById()).orElseThrow(() ->
-                new UserNotFoundException("User of id : " + createTaskRequest.getCreatedById() + " not found")
-        );
+    }
+
+
+    /**
+     * Creates a new task.
+     *
+     * @param createTaskRequest task creation details
+     * @return created task
+     * @throws ProjectNotFoundException if the project does not exist
+     * @throws UserNotFoundException if the assigned user or creator does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canManageProject(
+        #createTaskRequest.projectId,
+        authentication
+    )
+    """)
+    @Transactional
+    public GetTaskResponse createTask(
+            @P("createTaskRequest")
+            CreateTaskRequest createTaskRequest
+    ) {
+
+        Project project = projectRepository
+                .findById(createTaskRequest.getProjectId())
+                .orElseThrow(() ->
+                        new ProjectNotFoundException(
+                                "Project of id : "
+                                        + createTaskRequest.getProjectId()
+                                        + " not found"
+                        )
+                );
+
+        User assignedTo = userRepository
+                .findById(createTaskRequest.getAssignedToId())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + createTaskRequest.getAssignedToId()
+                                        + " not found"
+                        )
+                );
+
+        User createdBy = userRepository
+                .findById(createTaskRequest.getCreatedById())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + createTaskRequest.getCreatedById()
+                                        + " not found"
+                        )
+                );
+
         Task task = new Task();
+
         task.setTitle(createTaskRequest.getTitle());
         task.setDescription(createTaskRequest.getDescription());
         task.setTaskStatus(createTaskRequest.getTaskStatus());
@@ -127,77 +234,256 @@ public class TaskService {
         task.setProject(project);
         task.setAssignedTo(assignedTo);
         task.setCreatedBy(createdBy);
-        return returnGetTaskResponse(taskRepository.save(task));
+
+        return returnGetTaskResponse(
+                taskRepository.save(task)
+        );
     }
 
-    public GetTaskResponse getTaskById(GetTaskByIdRequest getTaskByIdRequest) {
-        Task task = taskRepository.findById(getTaskByIdRequest.getId()).orElseThrow(() ->
-                new TaskNotFoundException("Task of id : " + getTaskByIdRequest.getId() + " not found")
-        );
+
+    /**
+     * Retrieves a task by its ID.
+     *
+     * @param getTaskByIdRequest request containing task ID
+     * @return task details
+     * @throws TaskNotFoundException if the task does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canViewTask(
+        #getTaskByIdRequest.id,
+        authentication
+    )
+    """)
+    public GetTaskResponse getTaskById(
+            @P("getTaskByIdRequest")
+            GetTaskByIdRequest getTaskByIdRequest
+    ) {
+
+        Task task = taskRepository
+                .findById(getTaskByIdRequest.getId())
+                .orElseThrow(() ->
+                        new TaskNotFoundException(
+                                "Task of id : "
+                                        + getTaskByIdRequest.getId()
+                                        + " not found"
+                        )
+                );
+
         return returnGetTaskResponse(task);
     }
 
-    public List<GetTaskResponse> getAllTasks() {
-        List<Task> tasks = taskRepository.findAll();
-        List<GetTaskResponse> taskResponseList = new ArrayList<>();
-        for (Task task : tasks) {
-            GetTaskResponse taskResponse = returnGetTaskResponse(task);
-            taskResponseList.add(taskResponse);
-        }
-        return taskResponseList;
+
+    /**
+     * Retrieves all tasks using pagination.
+     *
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated task response
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public PageResponse<GetTaskResponse> getAllTasks(
+            int page,
+            int size
+    ) {
+
+        Page<Task> tasks = taskRepository.findAll(
+                PageRequest.of(page, size)
+        );
+
+        return createPageResponse(tasks);
     }
 
-    public List<GetTaskResponse> getTasksByProject(GetTaskByIdRequest getTaskByIdRequest) {
-        Project project = projectRepository.findById(getTaskByIdRequest.getId()).orElseThrow(() ->
-                new ProjectNotFoundException("Project of id : " + getTaskByIdRequest.getId() + " not found")
+
+    /**
+     * Retrieves all tasks belonging to a project using pagination.
+     *
+     * @param getTaskByIdRequest request containing project ID
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated task response
+     * @throws ProjectNotFoundException if the project does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canViewProjectTasks(
+        #getTaskByIdRequest.id,
+        authentication
+    )
+    """)
+    public PageResponse<GetTaskResponse> getTasksByProject(
+            @P("getTaskByIdRequest")
+            GetTaskByIdRequest getTaskByIdRequest,
+            int page,
+            int size
+    ) {
+
+        Project project = projectRepository
+                .findById(getTaskByIdRequest.getId())
+                .orElseThrow(() ->
+                        new ProjectNotFoundException(
+                                "Project of id : "
+                                        + getTaskByIdRequest.getId()
+                                        + " not found"
+                        )
+                );
+
+        Page<Task> tasks = taskRepository.findByProject(
+                project,
+                PageRequest.of(page, size)
         );
-        List<Task> tasks = taskRepository.findByProject(project);
-        List<GetTaskResponse> taskResponseList = new ArrayList<>();
-        for (Task task : tasks) {
-            GetTaskResponse taskResponse = returnGetTaskResponse(task);
-            taskResponseList.add(taskResponse);
-        }
-        return taskResponseList;
+
+        return createPageResponse(tasks);
     }
 
-    public List<GetTaskResponse> getTasksAssignedToUser(GetTaskByIdRequest getTaskByIdRequest) {
-        User user = userRepository.findById(getTaskByIdRequest.getId()).orElseThrow(() ->
-                new UserNotFoundException("User of id : " + getTaskByIdRequest.getId() + " not found"));
-        List<Task> tasks = taskRepository.findByAssignedTo(user);
-        List<GetTaskResponse> taskResponseList = new ArrayList<>();
-        for (Task task : tasks) {
-            GetTaskResponse taskResponse = returnGetTaskResponse(task);
-            taskResponseList.add(taskResponse);
-        }
-        return taskResponseList;
+
+    /**
+     * Retrieves tasks assigned to a user using pagination.
+     *
+     * @param getTaskByIdRequest request containing user ID
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated task response
+     * @throws UserNotFoundException if the user does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canViewAssignedTasks(
+        #getTaskByIdRequest.id,
+        authentication
+    )
+    """)
+    public PageResponse<GetTaskResponse> getTasksAssignedToUser(
+            @P("getTaskByIdRequest")
+            GetTaskByIdRequest getTaskByIdRequest,
+            int page,
+            int size
+    ) {
+
+        User user = userRepository
+                .findById(getTaskByIdRequest.getId())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + getTaskByIdRequest.getId()
+                                        + " not found"
+                        )
+                );
+
+        Page<Task> tasks = taskRepository.findByAssignedTo(
+                user,
+                PageRequest.of(page, size)
+        );
+
+        return createPageResponse(tasks);
     }
 
-    public List<GetTaskResponse> getTasksCreatedByUser(GetTaskByIdRequest getTaskByIdRequest) {
-        User user = userRepository.findById(getTaskByIdRequest.getId()).orElseThrow(() ->
-                new UserNotFoundException("User of id : " + getTaskByIdRequest.getId() + " not found"));
-        List<Task> tasks = taskRepository.findByCreatedBy(user);
-        List<GetTaskResponse> taskResponseList = new ArrayList<>();
-        for (Task task : tasks) {
-            GetTaskResponse taskResponse = returnGetTaskResponse(task);
-            taskResponseList.add(taskResponse);
-        }
-        return taskResponseList;
+
+    /**
+     * Retrieves tasks created by a user using pagination.
+     *
+     * @param getTaskByIdRequest request containing user ID
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated task response
+     * @throws UserNotFoundException if the user does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canViewCreatedTasks(
+        #getTaskByIdRequest.id,
+        authentication
+    )
+    """)
+    public PageResponse<GetTaskResponse> getTasksCreatedByUser(
+            @P("getTaskByIdRequest")
+            GetTaskByIdRequest getTaskByIdRequest,
+            int page,
+            int size
+    ) {
+
+        User user = userRepository
+                .findById(getTaskByIdRequest.getId())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + getTaskByIdRequest.getId()
+                                        + " not found"
+                        )
+                );
+
+        Page<Task> tasks = taskRepository.findByCreatedBy(
+                user,
+                PageRequest.of(page, size)
+        );
+
+        return createPageResponse(tasks);
     }
 
-    @Transactional(rollbackFor = {TaskNotFoundException.class, ProjectNotFoundException.class, UserNotFoundException.class})
-    public GetTaskResponse updateTaskDetails(UpdateTaskDetailsRequest updateTaskDetailsRequest) {
-        Task task = taskRepository.findById(updateTaskDetailsRequest.getId()).orElseThrow(() ->
-                new TaskNotFoundException("Task of id : " + updateTaskDetailsRequest.getId() + " not found")
-        );
-        Project project = projectRepository.findById(updateTaskDetailsRequest.getProjectId()).orElseThrow(() ->
-                new ProjectNotFoundException("Project of id : " + updateTaskDetailsRequest.getId() + " not found")
-        );
-        User assignedTo = userRepository.findById(updateTaskDetailsRequest.getAssignedToId()).orElseThrow(() ->
-                new UserNotFoundException("User of id : " + updateTaskDetailsRequest.getId() + " not found")
-        );
-        User createdBy = userRepository.findById(updateTaskDetailsRequest.getCreatedById()).orElseThrow(() ->
-                new UserNotFoundException("User of id : " + updateTaskDetailsRequest.getId() + " not found")
-        );
+
+    /**
+     * Updates the complete details of an existing task.
+     *
+     * @param updateTaskDetailsRequest updated task details
+     * @return updated task
+     * @throws TaskNotFoundException if the task does not exist
+     * @throws ProjectNotFoundException if the project does not exist
+     * @throws UserNotFoundException if the assigned user or creator does not exist
+     */
+
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canManageTask(
+        #updateTaskDetailsRequest.id,
+        authentication
+    )
+    """)
+    @Transactional
+    public GetTaskResponse updateTaskDetails(
+            @P("updateTaskDetailsRequest")
+            UpdateTaskDetailsRequest updateTaskDetailsRequest
+    ) {
+
+        Task task = taskRepository
+                .findById(updateTaskDetailsRequest.getId())
+                .orElseThrow(() ->
+                        new TaskNotFoundException(
+                                "Task of id : "
+                                        + updateTaskDetailsRequest.getId()
+                                        + " not found"
+                        )
+                );
+
+        Project project = projectRepository
+                .findById(updateTaskDetailsRequest.getProjectId())
+                .orElseThrow(() ->
+                        new ProjectNotFoundException(
+                                "Project of id : "
+                                        + updateTaskDetailsRequest.getProjectId()
+                                        + " not found"
+                        )
+                );
+
+        User assignedTo = userRepository
+                .findById(updateTaskDetailsRequest.getAssignedToId())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + updateTaskDetailsRequest.getAssignedToId()
+                                        + " not found"
+                        )
+                );
+
+        User createdBy = userRepository
+                .findById(updateTaskDetailsRequest.getCreatedById())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + updateTaskDetailsRequest.getCreatedById()
+                                        + " not found"
+                        )
+                );
+
         task.setTitle(updateTaskDetailsRequest.getTitle());
         task.setDescription(updateTaskDetailsRequest.getDescription());
         task.setTaskStatus(updateTaskDetailsRequest.getTaskStatus());
@@ -206,26 +492,82 @@ public class TaskService {
         task.setProject(project);
         task.setAssignedTo(assignedTo);
         task.setCreatedBy(createdBy);
+
         taskRepository.save(task);
+
         return returnGetTaskResponse(task);
     }
 
-    @Transactional(rollbackFor = {TaskNotFoundException.class})
-    public GetTaskResponse updateTaskStatus(UpdateTaskStatusRequest updateTaskStatusRequest) {
-        Task task = taskRepository.findById(updateTaskStatusRequest.getId()).orElseThrow(() ->
-                new TaskNotFoundException("Task of id : " + updateTaskStatusRequest.getId() + " not found")
-        );
+
+    /**
+     * Updates the status of an existing task.
+     *
+     * @param updateTaskStatusRequest request containing task ID and new status
+     * @return updated task
+     * @throws TaskNotFoundException if the task does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canUpdateStatus(
+        #updateTaskStatusRequest.id,
+        authentication
+    )
+    """)
+    @Transactional
+    public GetTaskResponse updateTaskStatus(
+            @P("updateTaskStatusRequest")
+            UpdateTaskStatusRequest updateTaskStatusRequest
+    ) {
+
+        Task task = taskRepository
+                .findById(updateTaskStatusRequest.getId())
+                .orElseThrow(() ->
+                        new TaskNotFoundException(
+                                "Task of id : "
+                                        + updateTaskStatusRequest.getId()
+                                        + " not found"
+                        )
+                );
+
         task.setTaskStatus(updateTaskStatusRequest.getStatus());
+
         taskRepository.save(task);
+
         return returnGetTaskResponse(task);
     }
 
-    @Transactional(rollbackFor = {TaskNotFoundException.class})
-    public boolean deleteTask(GetTaskByIdRequest getTaskByIdRequest) {
-        Task task = taskRepository.findById(getTaskByIdRequest.getId()).orElseThrow(() ->
-                new TaskNotFoundException("Task of id : " + getTaskByIdRequest.getId() + " not found")
-        );
+
+    /**
+     * Deletes a task by its ID.
+     *
+     * @param getTaskByIdRequest request containing task ID
+     * @return true when the task is successfully deleted
+     * @throws TaskNotFoundException if the task does not exist
+     */
+    @PreAuthorize("""
+    hasRole('ADMIN')
+    or @taskAuthorization.canManageTask(
+        #getTaskByIdRequest.id,
+        authentication
+    )
+    """)
+    @Transactional
+    public boolean deleteTask(
+            GetTaskByIdRequest getTaskByIdRequest
+    ) {
+
+        Task task = taskRepository
+                .findById(getTaskByIdRequest.getId())
+                .orElseThrow(() ->
+                        new TaskNotFoundException(
+                                "Task of id : "
+                                        + getTaskByIdRequest.getId()
+                                        + " not found"
+                        )
+                );
+
         taskRepository.delete(task);
+
         return true;
     }
 }

@@ -7,6 +7,7 @@ import com.Santhosh1802.ProjectManagement.dto.request.task.UpdateTaskStatusReque
 import com.Santhosh1802.ProjectManagement.dto.response.task.GetTaskResponse;
 import com.Santhosh1802.ProjectManagement.service.TaskService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
+import com.Santhosh1802.ProjectManagement.util.PageResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -24,125 +24,280 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
+
+    /**
+     * Creates a new task.
+     *
+     * @param createTaskRequest task creation details
+     * @return created task
+     */
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<GetTaskResponse>> createTask(@Valid @RequestBody CreateTaskRequest createTaskRequest) {
-        GetTaskResponse getTaskResponse = taskService.createTask(createTaskRequest);
+    public ResponseEntity<ApiResponse<GetTaskResponse>> createTask(
+            @Valid @RequestBody CreateTaskRequest createTaskRequest
+    ) {
+
+        GetTaskResponse getTaskResponse =
+                taskService.createTask(createTaskRequest);
+
         ApiResponse<GetTaskResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.CREATED.value(),
                 "Task created successfully",
                 getTaskResponse
         );
-        return ResponseEntity.status(HttpStatus.CREATED)
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
                 .body(response);
     }
 
+
+    /**
+     * Retrieves a task by its ID.
+     *
+     * @param id task ID
+     * @return task details
+     */
     @GetMapping("/id")
-    public ResponseEntity<ApiResponse<GetTaskResponse>> getTaskById(@RequestParam UUID id) {
-        GetTaskByIdRequest getTaskByIdRequest = new GetTaskByIdRequest(id);
-        GetTaskResponse getTaskResponse = taskService.getTaskById(getTaskByIdRequest);
+    public ResponseEntity<ApiResponse<GetTaskResponse>> getTaskById(
+            @RequestParam UUID id
+    ) {
+
+        GetTaskResponse getTaskResponse =
+                taskService.getTaskById(
+                        new GetTaskByIdRequest(id)
+                );
+
         ApiResponse<GetTaskResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
-                "Task status updated",
+                "Task found",
                 getTaskResponse
         );
-        return ResponseEntity.status(HttpStatus.OK)
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 
+
+    /**
+     * Retrieves all tasks using pagination.
+     *
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated tasks
+     */
     @GetMapping("/all")
-    public ResponseEntity<ApiResponse<List<GetTaskResponse>>> getAllTasks() {
-        List<GetTaskResponse> getTaskResponseList = taskService.getAllTasks();
-        ApiResponse<List<GetTaskResponse>> response = new ApiResponse<>(
-                LocalDateTime.now(),
-                HttpStatus.OK.value(),
-                "Tasks found",
-                getTaskResponseList
-        );
-        return ResponseEntity.status(HttpStatus.OK)
+    public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getAllTasks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        PageResponse<GetTaskResponse> taskResponse =
+                taskService.getAllTasks(page, size);
+
+        ApiResponse<PageResponse<GetTaskResponse>> response =
+                new ApiResponse<>(
+                        LocalDateTime.now(),
+                        HttpStatus.OK.value(),
+                        "Tasks found",
+                        taskResponse
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 
+
+    /**
+     * Retrieves all tasks belonging to a project using pagination.
+     *
+     * @param projectId project ID
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated project tasks
+     */
     @GetMapping("/by-project")
-    public ResponseEntity<ApiResponse<List<GetTaskResponse>>> getTasksByProject(@RequestParam UUID projectId) {
-        GetTaskByIdRequest getTaskByIdRequest = new GetTaskByIdRequest(projectId);
-        List<GetTaskResponse> getTaskResponseList = taskService.getTasksByProject(getTaskByIdRequest);
-        ApiResponse<List<GetTaskResponse>> response = new ApiResponse<>(
-                LocalDateTime.now(),
-                HttpStatus.OK.value(),
-                "Tasks found",
-                getTaskResponseList
-        );
-        return ResponseEntity.status(HttpStatus.OK)
+    public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksByProject(
+            @RequestParam UUID projectId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        PageResponse<GetTaskResponse> taskResponse =
+                taskService.getTasksByProject(
+                        new GetTaskByIdRequest(projectId),
+                        page,
+                        size
+                );
+
+        ApiResponse<PageResponse<GetTaskResponse>> response =
+                new ApiResponse<>(
+                        LocalDateTime.now(),
+                        HttpStatus.OK.value(),
+                        "Tasks found",
+                        taskResponse
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
+
+
+    /**
+     * Retrieves tasks assigned to a user using pagination.
+     *
+     * @param assignedToId assigned user ID
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated assigned tasks
+     */
     @GetMapping("/assigned-to")
-    public ResponseEntity<ApiResponse<List<GetTaskResponse>>> getTasksByAssignedToUser(@RequestParam UUID assignedToId) {
-        GetTaskByIdRequest getTaskByIdRequest = new GetTaskByIdRequest(assignedToId);
-        List<GetTaskResponse> getTaskResponseList = taskService.getTasksAssignedToUser(getTaskByIdRequest);
-        ApiResponse<List<GetTaskResponse>> response = new ApiResponse<>(
-                LocalDateTime.now(),
-                HttpStatus.OK.value(),
-                "Tasks found",
-                getTaskResponseList
+    public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksByAssignedToUser(
+            @RequestParam UUID assignedToId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        PageResponse<GetTaskResponse> taskResponse =
+                taskService.getTasksAssignedToUser(
+                        new GetTaskByIdRequest(assignedToId),
+                        page,
+                        size
                 );
-        return ResponseEntity.status(HttpStatus.OK)
+
+        ApiResponse<PageResponse<GetTaskResponse>> response =
+                new ApiResponse<>(
+                        LocalDateTime.now(),
+                        HttpStatus.OK.value(),
+                        "Tasks found",
+                        taskResponse
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 
+
+    /**
+     * Retrieves tasks created by a user using pagination.
+     *
+     * @param createdByUserId creator user ID
+     * @param page zero-based page number
+     * @param size number of tasks per page
+     * @return paginated created tasks
+     */
     @GetMapping("/created-by")
-    public ResponseEntity<ApiResponse<List<GetTaskResponse>>> getTasksCreatedByUser(@RequestParam UUID createdByUserId) {
-        GetTaskByIdRequest getTaskByIdRequest = new GetTaskByIdRequest(createdByUserId);
-        List<GetTaskResponse> getTaskResponseList = taskService.getTasksCreatedByUser(getTaskByIdRequest);
-        ApiResponse<List<GetTaskResponse>> response = new ApiResponse<>(
-                LocalDateTime.now(),
-                HttpStatus.OK.value(),
-                "Tasks found",
-                getTaskResponseList
+    public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksCreatedByUser(
+            @RequestParam UUID createdByUserId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+
+        PageResponse<GetTaskResponse> taskResponse =
+                taskService.getTasksCreatedByUser(
+                        new GetTaskByIdRequest(createdByUserId),
+                        page,
+                        size
                 );
-        return ResponseEntity.status(HttpStatus.OK)
+
+        ApiResponse<PageResponse<GetTaskResponse>> response =
+                new ApiResponse<>(
+                        LocalDateTime.now(),
+                        HttpStatus.OK.value(),
+                        "Tasks found",
+                        taskResponse
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 
+
+    /**
+     * Updates all editable details of an existing task.
+     *
+     * @param updateTaskDetailsRequest updated task details
+     * @return updated task
+     */
     @PutMapping("/update-details")
-    public ResponseEntity<ApiResponse<GetTaskResponse>> updateTaskDetails(@Valid @RequestBody UpdateTaskDetailsRequest updateTaskDetailsRequest) {
-        GetTaskResponse getTaskResponse = taskService.updateTaskDetails(updateTaskDetailsRequest);
-        ApiResponse<GetTaskResponse> response = new ApiResponse<>(
-                LocalDateTime.now(),
-                HttpStatus.OK.value(),
-                "Tasks updated successfully",
-                getTaskResponse
-                );
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(response);
-    }
+    public ResponseEntity<ApiResponse<GetTaskResponse>> updateTaskDetails(
+            @Valid @RequestBody UpdateTaskDetailsRequest updateTaskDetailsRequest
+    ) {
 
-    @PutMapping("/update-status")
-    public ResponseEntity<ApiResponse<GetTaskResponse>> updateTaskStatus(@Valid @RequestBody UpdateTaskStatusRequest updateTaskStatusRequest) {
-        GetTaskResponse getTaskResponse = taskService.updateTaskStatus(updateTaskStatusRequest);
+        GetTaskResponse getTaskResponse =
+                taskService.updateTaskDetails(updateTaskDetailsRequest);
+
         ApiResponse<GetTaskResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
-                "Tasks status updated successfully",
+                "Task updated successfully",
                 getTaskResponse
         );
-        return ResponseEntity.status(HttpStatus.OK)
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 
+
+    /**
+     * Updates the status of an existing task.
+     *
+     * @param updateTaskStatusRequest task ID and new status
+     * @return updated task
+     */
+    @PutMapping("/update-status")
+    public ResponseEntity<ApiResponse<GetTaskResponse>> updateTaskStatus(
+            @Valid @RequestBody UpdateTaskStatusRequest updateTaskStatusRequest
+    ) {
+
+        GetTaskResponse getTaskResponse =
+                taskService.updateTaskStatus(updateTaskStatusRequest);
+
+        ApiResponse<GetTaskResponse> response = new ApiResponse<>(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "Task status updated successfully",
+                getTaskResponse
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
+    }
+
+
+    /**
+     * Deletes a task by its ID.
+     *
+     * @param id task ID
+     * @return deletion result
+     */
     @DeleteMapping("/delete")
-    public ResponseEntity<ApiResponse<Boolean>> deleteTaskById(@RequestParam UUID id) {
-        GetTaskByIdRequest getTaskByIdRequest = new GetTaskByIdRequest(id);
-        Boolean deleteTaskResponse = taskService.deleteTask(getTaskByIdRequest);
+    public ResponseEntity<ApiResponse<Boolean>> deleteTaskById(
+            @RequestParam UUID id
+    ) {
+
+        Boolean deleteTaskResponse =
+                taskService.deleteTask(
+                        new GetTaskByIdRequest(id)
+                );
+
         ApiResponse<Boolean> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
                 "Task deleted successfully",
                 deleteTaskResponse
         );
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(response);
 
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
     }
 }
