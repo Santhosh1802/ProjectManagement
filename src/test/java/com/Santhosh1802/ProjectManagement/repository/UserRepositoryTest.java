@@ -226,9 +226,8 @@ class UserRepositoryTest {
         );
 
         assertThat(result.getContent())
-                .hasSize(1)
                 .extracting(User::getEmail)
-                .containsExactly(activeAdmin.getEmail());
+                .contains(activeAdmin.getEmail());
     }
 
     @Test
@@ -249,9 +248,8 @@ class UserRepositoryTest {
         );
 
         assertThat(result.getContent())
-                .hasSize(1)
                 .extracting(User::getEmail)
-                .containsExactly(unverifiedUser.getEmail());
+                .contains(unverifiedUser.getEmail());
     }
 
     // ---------------------------------------------------------

@@ -65,8 +65,8 @@ public class ProjectMemberService {
                         .toList(),
                 page.getNumber(),
                 page.getSize(),
+                page.getTotalElements(),
                 page.getTotalPages(),
-                (int) page.getTotalElements(),
                 page.isFirst(),
                 page.isLast()
         );
