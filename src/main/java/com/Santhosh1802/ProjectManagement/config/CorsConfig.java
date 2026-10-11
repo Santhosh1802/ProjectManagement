@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed-origins:http://localhost:4321,https://*.vercel.app}")
+    @Value("${cors.allowed-origins:http://localhost:4321,https://devflow-km.vercel.app}")
     private String allowedOrigins;
 
     @Bean
