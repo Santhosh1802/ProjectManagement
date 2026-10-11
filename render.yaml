@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: project-management-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://*.vercel.app,http://localhost:4321
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: SHOW_SQL
+        value: "false"
+      - key: SESSION_COOKIE_SAMESITE
+        value: None
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
