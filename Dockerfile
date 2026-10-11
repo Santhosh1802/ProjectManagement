@@ -38,6 +38,7 @@ USER spring
 
 # Render automatically sets the PORT environment variable
 ENV PORT=8080
+ENV SERVER_TOMCAT_BASEDIR=/tmp
 EXPOSE ${PORT}
 
 # Launch Spring Boot with dynamic port binding and memory optimization
