@@ -153,6 +153,11 @@ public class AuthService {
     public GetUserResponse getAuthenticatedUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User with email: " + email + " not found"));
+
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new UserNotAuthenticatedException("User account is deactivated");
+        }
+
         return returnGetUserResponse(user);
     }
 }

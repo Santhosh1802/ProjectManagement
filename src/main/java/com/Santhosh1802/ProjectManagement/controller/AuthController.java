@@ -196,6 +196,11 @@ public class AuthController {
                 httpResponse
         );
 
+        jakarta.servlet.http.HttpSession session = httpRequest.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
         ApiResponse<Boolean> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
