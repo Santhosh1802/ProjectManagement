@@ -20,6 +20,7 @@ import com.Santhosh1802.ProjectManagement.repository.ProjectRepository;
 import com.Santhosh1802.ProjectManagement.repository.TaskRepository;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import com.Santhosh1802.ProjectManagement.util.PageResponse;
+import com.Santhosh1802.ProjectManagement.util.ProjectRole;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -372,7 +373,8 @@ public class TaskService {
             @P("getTaskByIdRequest")
             GetTaskByIdRequest getTaskByIdRequest,
             int page,
-            int size
+            int size,
+            Authentication authentication
     ) {
 
         Project project = projectRepository
@@ -385,10 +387,33 @@ public class TaskService {
                         )
                 );
 
-        Page<Task> tasks = taskRepository.findByProject(
-                project,
-                PageRequest.of(page, size)
-        );
+        String email = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = project.getOwner() != null
+                && email.equalsIgnoreCase(project.getOwner().getEmail());
+        boolean isManager = projectMemberRepository
+                .existsByProjectIdAndUserEmailAndProjectRole(
+                        project.getId(),
+                        email,
+                        ProjectRole.MANAGER
+                );
+
+        Page<Task> tasks;
+        if (isAdmin || isOwner || isManager) {
+            tasks = taskRepository.findByProject(
+                    project,
+                    PageRequest.of(page, size)
+            );
+        } else {
+            User currentUser = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UserNotFoundException("Authenticated user not found"));
+            tasks = taskRepository.findByProjectAndAssignedTo(
+                    project,
+                    currentUser,
+                    PageRequest.of(page, size)
+            );
+        }
 
         return createPageResponse(tasks);
     }

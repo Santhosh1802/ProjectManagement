@@ -10,9 +10,14 @@ import java.util.UUID;
 public class ProjectAuthorization {
 
     private final ProjectRepository projectRepository;
+    private final com.Santhosh1802.ProjectManagement.repository.ProjectMemberRepository projectMemberRepository;
 
-    public ProjectAuthorization(ProjectRepository projectRepository) {
+    public ProjectAuthorization(
+            ProjectRepository projectRepository,
+            com.Santhosh1802.ProjectManagement.repository.ProjectMemberRepository projectMemberRepository
+    ) {
         this.projectRepository = projectRepository;
+        this.projectMemberRepository = projectMemberRepository;
     }
 
     public boolean isOwner(
@@ -44,8 +49,16 @@ public class ProjectAuthorization {
         }
 
         // ADMIN is handled directly by @PreAuthorize.
-        // This method handles project-level access.
-        return isOwner(projectId, authentication);
+        // Project owner can view
+        if (isOwner(projectId, authentication)) {
+            return true;
+        }
+
+        // Project members can view
+        return projectMemberRepository.existsByProjectIdAndUserEmail(
+                projectId,
+                authentication.getName()
+        );
     }
 
     private boolean isAuthenticated(Authentication authentication) {

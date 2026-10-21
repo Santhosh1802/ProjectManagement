@@ -128,14 +128,16 @@ public class TaskController {
     public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksByProject(
             @RequestParam UUID projectId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size,
+            Authentication authentication
     ) {
 
         PageResponse<GetTaskResponse> taskResponse =
                 taskService.getTasksByProject(
                         new GetTaskByIdRequest(projectId),
                         page,
-                        size
+                        size,
+                        authentication
                 );
 
         ApiResponse<PageResponse<GetTaskResponse>> response =
