@@ -9,9 +9,12 @@ import com.Santhosh1802.ProjectManagement.service.ProjectMemberService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
 import com.Santhosh1802.ProjectManagement.util.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,6 +22,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/project-member")
+@Validated
 public class ProjectMemberController {
 
     @Autowired
@@ -171,8 +175,8 @@ public class ProjectMemberController {
     public ResponseEntity<ApiResponse<PageResponse<GetProjectMemberResponse>>>
     getMembersByProject(
             @RequestParam UUID id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
     ) {
         GetByIdRequest request = new GetByIdRequest(id);
 
@@ -238,8 +242,8 @@ public class ProjectMemberController {
     public ResponseEntity<ApiResponse<PageResponse<GetProjectMemberResponse>>>
     getProjectsByUser(
             @RequestParam UUID id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
     ) {
         GetByIdRequest request = new GetByIdRequest(id);
 

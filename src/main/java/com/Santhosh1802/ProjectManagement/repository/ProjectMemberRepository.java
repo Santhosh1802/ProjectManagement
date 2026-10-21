@@ -42,4 +42,9 @@ public interface ProjectMemberRepository
             String email,
             ProjectRole projectRole
     );
+
+    boolean existsByProjectIdAndUserId(
+            UUID projectId,
+            UUID userId
+    );
 }

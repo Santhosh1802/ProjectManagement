@@ -40,7 +40,7 @@ public class Project {
     @Column(name = "updated_at",nullable = false)
     private Instant updatedAt;
 
-    @OneToMany(mappedBy = "project")
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
 
     @OneToMany(mappedBy = "project",cascade = CascadeType.ALL,orphanRemoval = true)
