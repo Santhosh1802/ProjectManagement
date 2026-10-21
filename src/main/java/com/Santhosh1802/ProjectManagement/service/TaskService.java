@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -298,6 +299,55 @@ public class TaskService {
         );
     }
 
+    /**
+     * Backward-compatible overload for creating a task without passing Authentication directly.
+     * Uses current SecurityContextHolder Authentication, or falls back to project owner / creator.
+     */
+    @Transactional
+    public GetTaskResponse createTask(CreateTaskRequest createTaskRequest) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            return createTask(createTaskRequest, auth);
+        }
+
+        Project project = projectRepository
+                .findById(createTaskRequest.getProjectId())
+                .orElseThrow(() ->
+                        new ProjectNotFoundException(
+                                "Project of id : "
+                                        + createTaskRequest.getProjectId()
+                                        + " not found"
+                        )
+                );
+
+        User assignedTo = userRepository
+                .findById(createTaskRequest.getAssignedToId())
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User of id : "
+                                        + createTaskRequest.getAssignedToId()
+                                        + " not found"
+                        )
+                );
+
+        User createdBy = project.getOwner();
+
+        validateTaskAssignee(project, assignedTo);
+        validateTaskDueDate(project, createTaskRequest.getDueDate());
+
+        Task task = new Task();
+        task.setTitle(createTaskRequest.getTitle());
+        task.setDescription(createTaskRequest.getDescription());
+        task.setTaskStatus(createTaskRequest.getTaskStatus());
+        task.setTaskPriority(createTaskRequest.getTaskPriority());
+        task.setDueDate(createTaskRequest.getDueDate());
+        task.setProject(project);
+        task.setAssignedTo(assignedTo);
+        task.setCreatedBy(createdBy);
+
+        return returnGetTaskResponse(taskRepository.save(task));
+    }
+
 
     /**
      * Retrieves a task by its ID.
@@ -414,6 +464,38 @@ public class TaskService {
                     PageRequest.of(page, size)
             );
         }
+
+        return createPageResponse(tasks);
+    }
+
+    /**
+     * Backward-compatible overload for retrieving project tasks without passing Authentication directly.
+     * Uses current SecurityContextHolder Authentication, or defaults to all tasks in project.
+     */
+    public PageResponse<GetTaskResponse> getTasksByProject(
+            GetTaskByIdRequest getTaskByIdRequest,
+            int page,
+            int size
+    ) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            return getTasksByProject(getTaskByIdRequest, page, size, auth);
+        }
+
+        Project project = projectRepository
+                .findById(getTaskByIdRequest.getId())
+                .orElseThrow(() ->
+                        new ProjectNotFoundException(
+                                "Project of id : "
+                                        + getTaskByIdRequest.getId()
+                                        + " not found"
+                        )
+                );
+
+        Page<Task> tasks = taskRepository.findByProject(
+                project,
+                PageRequest.of(page, size)
+        );
 
         return createPageResponse(tasks);
     }

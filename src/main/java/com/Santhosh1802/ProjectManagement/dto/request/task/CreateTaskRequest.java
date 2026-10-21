@@ -44,6 +44,19 @@ public class CreateTaskRequest {
     @NotNull(message = "assigned to id is required")
     private UUID assignedToId;
 
+    public CreateTaskRequest(
+            String title,
+            String description,
+            TaskStatus taskStatus,
+            TaskPriority taskPriority,
+            Instant dueDate,
+            UUID projectId,
+            UUID assignedToId,
+            UUID createdById
+    ) {
+        this(title, description, taskStatus, taskPriority, dueDate, projectId, assignedToId);
+    }
+
 
 
 
