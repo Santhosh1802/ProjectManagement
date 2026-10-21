@@ -1,7 +1,7 @@
 # -------------------------------------------------------------
 # Stage 1: Build the Spring Boot application
 # -------------------------------------------------------------
-FROM eclipse-temurin:26-jdk AS builder
+FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /app
 
 # Copy Maven wrapper and descriptor first to cache dependencies
@@ -24,7 +24,7 @@ RUN ./mvnw clean package -DskipTests -B
 # -------------------------------------------------------------
 # Stage 2: Create lightweight runtime image
 # -------------------------------------------------------------
-FROM eclipse-temurin:26-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
 # Create a non-privileged user to run the application
