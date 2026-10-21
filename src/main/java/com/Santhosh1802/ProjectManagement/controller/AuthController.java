@@ -209,31 +209,28 @@ public class AuthController {
     }
 
     /**
-     * Checks whether the current request is associated with an
-     * authenticated user.
+     * Retrieves the profile of the currently authenticated user.
      *
      * <p>
      * Spring Security provides the current {@link Authentication}
-     * object for the request. If authentication is missing or the
-     * authentication is not valid, a
-     * {@link UserNotAuthenticatedException} is thrown.
+     * object for the request. If authentication is missing or invalid,
+     * a {@link UserNotAuthenticatedException} is thrown.
      * </p>
      *
      * <p>
-     * This endpoint is primarily used by the frontend to determine
-     * whether the current session is authenticated.
+     * This endpoint is used by the frontend upon page refresh/initialization
+     * to restore the authenticated user's profile and roles.
      * </p>
      *
      * @param authentication current Spring Security authentication
      *                       associated with the request
-     * @return {@link ResponseEntity} containing {@code true} when the
-     * current user is authenticated, with HTTP status
-     * {@code 200 OK}
+     * @return {@link ResponseEntity} containing the authenticated user's profile,
+     * with HTTP status {@code 200 OK}
      * @throws UserNotAuthenticatedException when no authenticated user is associated with the request
      * @apiNote Endpoint: {@code GET /api/auth/me}
      */
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<Boolean>> getCurrentUser(
+    public ResponseEntity<ApiResponse<GetUserResponse>> getCurrentUser(
             Authentication authentication
     ) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -242,11 +239,13 @@ public class AuthController {
             );
         }
 
-        ApiResponse<Boolean> response = new ApiResponse<>(
+        GetUserResponse user = authService.getAuthenticatedUser(authentication.getName());
+
+        ApiResponse<GetUserResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
                 "User Authenticated",
-                authentication.isAuthenticated()
+                user
         );
 
         return ResponseEntity

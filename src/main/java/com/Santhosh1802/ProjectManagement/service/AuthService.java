@@ -143,5 +143,16 @@ public class AuthService {
         return returnGetUserResponse(user);
     }
 
-
+    /**
+     * Retrieves the profile of an authenticated user by email.
+     *
+     * @param email email of the authenticated user
+     * @return {@link GetUserResponse} profile details
+     * @throws UserNotFoundException if the user does not exist
+     */
+    public GetUserResponse getAuthenticatedUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User with email: " + email + " not found"));
+        return returnGetUserResponse(user);
+    }
 }
