@@ -6,6 +6,7 @@ import com.Santhosh1802.ProjectManagement.dto.response.auth.RegisterUserResponse
 import com.Santhosh1802.ProjectManagement.dto.response.user.GetUserResponse;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
+import com.Santhosh1802.ProjectManagement.exception.user.UserNotAuthenticatedException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import com.Santhosh1802.ProjectManagement.util.UserRole;
