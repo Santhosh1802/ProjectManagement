@@ -4,6 +4,7 @@ import com.Santhosh1802.ProjectManagement.exception.project.ProjectAlreadyExistE
 import com.Santhosh1802.ProjectManagement.exception.project.ProjectNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.projectMember.ProjectMemberAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.projectMember.ProjectMemberNotFoundException;
+import com.Santhosh1802.ProjectManagement.exception.task.InvalidTaskAssignmentException;
 import com.Santhosh1802.ProjectManagement.exception.task.TaskNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserAlreadyExistException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotAuthenticatedException;
@@ -30,6 +31,25 @@ public class GlobalExceptionHandler {
                 .map(error->
                         error.getField()+": "+error.getDefaultMessage()
                 ).collect(Collectors.joining(", "));
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Error",
+                message,
+                request.getRequestURI()
+        );
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(
+            jakarta.validation.ConstraintViolationException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getConstraintViolations()
+                .stream()
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .collect(Collectors.joining(", "));
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
@@ -162,6 +182,20 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(InvalidTaskAssignmentException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTaskAssignmentException(InvalidTaskAssignmentException ex, HttpServletRequest request){
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Invalid Task Assignment",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(error);
     }
 

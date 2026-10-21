@@ -44,8 +44,6 @@ public class CreateTaskRequest {
     @NotNull(message = "assigned to id is required")
     private UUID assignedToId;
 
-    @NotNull(message = "created by id is required")
-    private UUID createdById;
 
 
 

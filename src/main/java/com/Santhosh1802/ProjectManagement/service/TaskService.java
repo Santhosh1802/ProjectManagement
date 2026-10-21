@@ -12,16 +12,20 @@ import com.Santhosh1802.ProjectManagement.entity.Project;
 import com.Santhosh1802.ProjectManagement.entity.Task;
 import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.project.ProjectNotFoundException;
+import com.Santhosh1802.ProjectManagement.exception.task.InvalidTaskAssignmentException;
 import com.Santhosh1802.ProjectManagement.exception.task.TaskNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
+import com.Santhosh1802.ProjectManagement.repository.ProjectMemberRepository;
 import com.Santhosh1802.ProjectManagement.repository.ProjectRepository;
 import com.Santhosh1802.ProjectManagement.repository.TaskRepository;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import com.Santhosh1802.ProjectManagement.util.PageResponse;
+import java.time.Instant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +40,9 @@ public class TaskService {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -174,6 +181,59 @@ public class TaskService {
 
 
     /**
+     * Validates that an assigned user is active and belongs to the project (as owner or member).
+     *
+     * @param project the project containing the task
+     * @param assignedTo the user being assigned
+     * @throws InvalidTaskAssignmentException if the user is inactive or not part of the project
+     */
+    private void validateTaskAssignee(Project project, User assignedTo) {
+        if (assignedTo == null) {
+            return;
+        }
+
+        if (Boolean.FALSE.equals(assignedTo.getIsActive())) {
+            throw new InvalidTaskAssignmentException(
+                    "Cannot assign task to an inactive user (id: " + assignedTo.getId() + ")"
+            );
+        }
+
+        boolean isOwner = project.getOwner().getId().equals(assignedTo.getId());
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserId(project.getId(), assignedTo.getId());
+
+        if (!isOwner && !isMember) {
+            throw new InvalidTaskAssignmentException(
+                    "Assigned user of id: " + assignedTo.getId() + " does not belong to project " + project.getId()
+            );
+        }
+    }
+
+    /**
+     * Validates that the task due date conforms to project timeline rules.
+     *
+     * @param project the project containing the task
+     * @param dueDate the proposed task due date
+     * @throws IllegalArgumentException if the due date falls outside the project timeline
+     */
+    private void validateTaskDueDate(Project project, Instant dueDate) {
+        if (dueDate == null) {
+            return;
+        }
+
+        if (project.getStartDate() != null && dueDate.isBefore(project.getStartDate())) {
+            throw new IllegalArgumentException(
+                    "Task due date cannot be before project start date (" + project.getStartDate() + ")"
+            );
+        }
+
+        if (project.getDueDate() != null && dueDate.isAfter(project.getDueDate())) {
+            throw new IllegalArgumentException(
+                    "Task due date cannot be after project due date (" + project.getDueDate() + ")"
+            );
+        }
+    }
+
+    /**
      * Creates a new task.
      *
      * @param createTaskRequest task creation details
@@ -191,7 +251,8 @@ public class TaskService {
     @Transactional
     public GetTaskResponse createTask(
             @P("createTaskRequest")
-            CreateTaskRequest createTaskRequest
+            CreateTaskRequest createTaskRequest,
+            Authentication authentication
     ) {
 
         Project project = projectRepository
@@ -214,15 +275,11 @@ public class TaskService {
                         )
                 );
 
-        User createdBy = userRepository
-                .findById(createTaskRequest.getCreatedById())
-                .orElseThrow(() ->
-                        new UserNotFoundException(
-                                "User of id : "
-                                        + createTaskRequest.getCreatedById()
-                                        + " not found"
-                        )
-                );
+        User createdBy = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UserNotFoundException("Authenticated user not found"));
+
+        validateTaskAssignee(project, assignedTo);
+        validateTaskDueDate(project, createTaskRequest.getDueDate());
 
         Task task = new Task();
 
@@ -483,6 +540,9 @@ public class TaskService {
                                         + " not found"
                         )
                 );
+
+        validateTaskAssignee(project, assignedTo);
+        validateTaskDueDate(project, updateTaskDetailsRequest.getDueDate());
 
         task.setTitle(updateTaskDetailsRequest.getTitle());
         task.setDescription(updateTaskDetailsRequest.getDescription());

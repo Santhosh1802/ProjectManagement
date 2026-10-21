@@ -9,9 +9,13 @@ import com.Santhosh1802.ProjectManagement.service.TaskService;
 import com.Santhosh1802.ProjectManagement.util.ApiResponse;
 import com.Santhosh1802.ProjectManagement.util.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,6 +23,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
+@Validated
 public class TaskController {
 
     @Autowired
@@ -33,11 +38,11 @@ public class TaskController {
      */
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<GetTaskResponse>> createTask(
-            @Valid @RequestBody CreateTaskRequest createTaskRequest
+            @Valid @RequestBody CreateTaskRequest createTaskRequest,Authentication authentication
     ) {
 
         GetTaskResponse getTaskResponse =
-                taskService.createTask(createTaskRequest);
+                taskService.createTask(createTaskRequest,authentication);
 
         ApiResponse<GetTaskResponse> response = new ApiResponse<>(
                 LocalDateTime.now(),
@@ -90,8 +95,8 @@ public class TaskController {
      */
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getAllTasks(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
     ) {
 
         PageResponse<GetTaskResponse> taskResponse =
@@ -122,8 +127,8 @@ public class TaskController {
     @GetMapping("/by-project")
     public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksByProject(
             @RequestParam UUID projectId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
     ) {
 
         PageResponse<GetTaskResponse> taskResponse =
@@ -158,8 +163,8 @@ public class TaskController {
     @GetMapping("/assigned-to")
     public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksByAssignedToUser(
             @RequestParam UUID assignedToId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
     ) {
 
         PageResponse<GetTaskResponse> taskResponse =
@@ -194,8 +199,8 @@ public class TaskController {
     @GetMapping("/created-by")
     public ResponseEntity<ApiResponse<PageResponse<GetTaskResponse>>> getTasksCreatedByUser(
             @RequestParam UUID createdByUserId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be less than 0") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size
     ) {
 
         PageResponse<GetTaskResponse> taskResponse =
