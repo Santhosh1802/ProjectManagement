@@ -11,7 +11,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "task_comments")
+@Table(name = "task_comments", indexes = {
+        @Index(name = "idx_task_comments_task_id", columnList = "task_id"),
+        @Index(name = "idx_task_comments_created_at", columnList = "created_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor

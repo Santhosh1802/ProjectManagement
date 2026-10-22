@@ -753,7 +753,7 @@ public class TaskService {
 
         taskRepository.save(task);
 
-        if (eventPublisher != null) {
+        if (eventPublisher != null && previousStatus != task.getTaskStatus()) {
             UUID actorId = null;
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
@@ -771,6 +771,7 @@ public class TaskService {
                     task.getTaskStatus()
             ));
         }
+
 
         return returnGetTaskResponse(task);
     }
