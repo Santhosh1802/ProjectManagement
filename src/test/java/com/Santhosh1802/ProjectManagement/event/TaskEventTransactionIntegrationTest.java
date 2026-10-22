@@ -172,10 +172,20 @@ class TaskEventTransactionIntegrationTest {
 
         taskService.createTask(request, auth);
 
-        // Simulate subsequent failure in the same outer transaction causing rollback
+        // Synchronous @EventListener has executed in-memory as part of the invocation
+        assertEquals(1, testEventListener.getDefaultEvents().size(), "Standard @EventListener executes in-memory immediately upon publication");
+
+        // Simulate subsequent failure in the same outer transaction causing complete rollback
         transactionManager.rollback(status);
 
-        // The transactional event listener MUST NOT receive the after-commit event because the transaction aborted
+        // 1. Transactional event listener MUST NOT receive the after-commit event because the transaction aborted
         assertEquals(0, testEventListener.getCommitPhaseEvents().size(), "TransactionalEventListener(AFTER_COMMIT) must not fire on rollback");
+
+        // 2. Database transaction rollback verification: Task must not exist in database
+        List<com.Santhosh1802.ProjectManagement.entity.Task> rolledBackTasks = taskRepository
+                .findByProject(project, org.springframework.data.domain.PageRequest.of(0, 10))
+                .getContent();
+        boolean taskPersisted = rolledBackTasks.stream().anyMatch(t -> "Rollback Task".equals(t.getTitle()));
+        assertFalse(taskPersisted, "Rolled back task must NOT be persisted in the database");
     }
 }
