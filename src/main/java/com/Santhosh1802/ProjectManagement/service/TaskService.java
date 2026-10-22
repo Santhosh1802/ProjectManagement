@@ -21,33 +21,46 @@ import com.Santhosh1802.ProjectManagement.repository.TaskRepository;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
 import com.Santhosh1802.ProjectManagement.util.PageResponse;
 import com.Santhosh1802.ProjectManagement.util.ProjectRole;
+import com.Santhosh1802.ProjectManagement.util.TaskStatus;
 import java.time.Instant;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.Santhosh1802.ProjectManagement.tasks.event.TaskCreatedEvent;
+import com.Santhosh1802.ProjectManagement.tasks.event.TaskStatusChangedEvent;
+import com.Santhosh1802.ProjectManagement.tasks.event.TaskUpdatedEvent;
 
 @Service
 @Transactional(readOnly = true)
 public class TaskService {
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private ProjectMemberRepository projectMemberRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    public TaskService(
+            TaskRepository taskRepository,
+            ProjectRepository projectRepository,
+            ProjectMemberRepository projectMemberRepository,
+            UserRepository userRepository,
+            @Autowired(required = false) ApplicationEventPublisher eventPublisher
+    ) {
+        this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
+        this.projectMemberRepository = projectMemberRepository;
+        this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
+    }
 
 
     /**
@@ -294,9 +307,21 @@ public class TaskService {
         task.setAssignedTo(assignedTo);
         task.setCreatedBy(createdBy);
 
-        return returnGetTaskResponse(
-                taskRepository.save(task)
-        );
+        Task saved = taskRepository.save(task);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(TaskCreatedEvent.of(
+                    saved.getId(),
+                    project.getId(),
+                    createdBy.getId(),
+                    assignedTo.getId(),
+                    saved.getTitle(),
+                    saved.getTaskStatus(),
+                    saved.getTaskPriority()
+            ));
+        }
+
+        return returnGetTaskResponse(saved);
     }
 
     /**
@@ -345,7 +370,21 @@ public class TaskService {
         task.setAssignedTo(assignedTo);
         task.setCreatedBy(createdBy);
 
-        return returnGetTaskResponse(taskRepository.save(task));
+        Task saved = taskRepository.save(task);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(TaskCreatedEvent.of(
+                    saved.getId(),
+                    project.getId(),
+                    createdBy.getId(),
+                    assignedTo.getId(),
+                    saved.getTitle(),
+                    saved.getTaskStatus(),
+                    saved.getTaskPriority()
+            ));
+        }
+
+        return returnGetTaskResponse(saved);
     }
 
 
@@ -662,6 +701,19 @@ public class TaskService {
 
         taskRepository.save(task);
 
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(TaskUpdatedEvent.of(
+                    task.getId(),
+                    project.getId(),
+                    createdBy.getId(),
+                    task.getTitle(),
+                    task.getTaskStatus(),
+                    task.getTaskPriority(),
+                    assignedTo.getId(),
+                    task.getDueDate()
+            ));
+        }
+
         return returnGetTaskResponse(task);
     }
 
@@ -696,9 +748,29 @@ public class TaskService {
                         )
                 );
 
+        TaskStatus previousStatus = task.getTaskStatus();
         task.setTaskStatus(updateTaskStatusRequest.getStatus());
 
         taskRepository.save(task);
+
+        if (eventPublisher != null) {
+            UUID actorId = null;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                actorId = userRepository.findByEmail(auth.getName()).map(User::getId).orElse(null);
+            }
+            if (actorId == null && task.getCreatedBy() != null) {
+                actorId = task.getCreatedBy().getId();
+            }
+
+            eventPublisher.publishEvent(TaskStatusChangedEvent.of(
+                    task.getId(),
+                    task.getProject() != null ? task.getProject().getId() : null,
+                    actorId,
+                    previousStatus,
+                    task.getTaskStatus()
+            ));
+        }
 
         return returnGetTaskResponse(task);
     }

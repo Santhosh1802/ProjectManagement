@@ -29,17 +29,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import org.springframework.context.ApplicationEventPublisher;
+import com.Santhosh1802.ProjectManagement.projects.event.ProjectMemberAddedEvent;
+
 @Service
 public class ProjectMemberService {
 
-    @Autowired
-    private ProjectMemberRepository projectMemberRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    public ProjectMemberService(
+            ProjectMemberRepository projectMemberRepository,
+            ProjectRepository projectRepository,
+            UserRepository userRepository,
+            @Autowired(required = false) ApplicationEventPublisher eventPublisher
+    ) {
+        this.projectMemberRepository = projectMemberRepository;
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
+    }
 
     /**
      * Converts a {@link Page} of {@link ProjectMember} entities into a
@@ -164,8 +175,18 @@ public class ProjectMemberService {
             throw new ProjectMemberAlreadyExistException("Project Member of user: " + user.getId() + " already exist.");
         }
         projectMember.setProjectRole(createProjectMemberRequest.getProjectRole());
-        projectMemberRepository.save(projectMember);
-        return returnGetProjectMemberResponse(projectMember);
+        ProjectMember savedMember = projectMemberRepository.save(projectMember);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(ProjectMemberAddedEvent.of(
+                    savedMember.getId(),
+                    project.getId(),
+                    user.getId(),
+                    savedMember.getProjectRole()
+            ));
+        }
+
+        return returnGetProjectMemberResponse(savedMember);
     }
 
     /**

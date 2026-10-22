@@ -21,6 +21,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.parameters.P;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import com.Santhosh1802.ProjectManagement.projects.event.ProjectCreatedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,19 +51,23 @@ import java.util.List;
  * transaction.
  * </p>
  */
+
 @Service
 @Transactional(readOnly = true)
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ProjectService(
             ProjectRepository projectRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            @Autowired(required = false) ApplicationEventPublisher eventPublisher
     ) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -240,6 +247,17 @@ public class ProjectService {
         project.setOwner(owner);
 
         Project savedProject = projectRepository.save(project);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(ProjectCreatedEvent.of(
+                    savedProject.getId(),
+                    savedProject.getName(),
+                    owner.getId(),
+                    savedProject.getProjectStatus(),
+                    savedProject.getStartDate(),
+                    savedProject.getDueDate()
+            ));
+        }
 
         return returnProjectResponse(savedProject);
     }
