@@ -11,6 +11,7 @@ import com.Santhosh1802.ProjectManagement.entity.User;
 import com.Santhosh1802.ProjectManagement.exception.project.ProjectNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.task.TaskNotFoundException;
 import com.Santhosh1802.ProjectManagement.exception.user.UserNotFoundException;
+import com.Santhosh1802.ProjectManagement.repository.ProjectMemberRepository;
 import com.Santhosh1802.ProjectManagement.repository.ProjectRepository;
 import com.Santhosh1802.ProjectManagement.repository.TaskRepository;
 import com.Santhosh1802.ProjectManagement.repository.UserRepository;
@@ -44,6 +45,9 @@ class TaskServiceTest {
 
     @Mock
     private ProjectRepository projectRepository;
+
+    @Mock
+    private ProjectMemberRepository projectMemberRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -130,9 +134,11 @@ class TaskServiceTest {
                 TaskPriority.HIGH,
                 dueDate,
                 projectId,
-                assignedUserId,
-                createdByUserId
+                assignedUserId
         );
+
+        org.springframework.security.core.Authentication authentication = mock(org.springframework.security.core.Authentication.class);
+        when(authentication.getName()).thenReturn("creator@example.com");
 
         when(projectRepository.findById(projectId))
                 .thenReturn(Optional.of(project));
@@ -140,13 +146,16 @@ class TaskServiceTest {
         when(userRepository.findById(assignedUserId))
                 .thenReturn(Optional.of(assignedUser));
 
-        when(userRepository.findById(createdByUserId))
+        when(userRepository.findByEmail("creator@example.com"))
                 .thenReturn(Optional.of(createdBy));
+
+        when(projectMemberRepository.existsByProjectIdAndUserId(projectId, assignedUserId))
+                .thenReturn(true);
 
         when(taskRepository.save(any(Task.class)))
                 .thenReturn(task);
 
-        GetTaskResponse response = taskService.createTask(request);
+        GetTaskResponse response = taskService.createTask(request, authentication);
 
         assertNotNull(response);
         assertEquals(taskId, response.getId());
@@ -156,7 +165,7 @@ class TaskServiceTest {
 
         verify(projectRepository).findById(projectId);
         verify(userRepository).findById(assignedUserId);
-        verify(userRepository).findById(createdByUserId);
+        verify(userRepository).findByEmail("creator@example.com");
         verify(taskRepository).save(any(Task.class));
     }
 
@@ -170,16 +179,17 @@ class TaskServiceTest {
                 TaskPriority.MEDIUM,
                 dueDate,
                 projectId,
-                assignedUserId,
-                createdByUserId
+                assignedUserId
         );
+
+        org.springframework.security.core.Authentication authentication = mock(org.springframework.security.core.Authentication.class);
 
         when(projectRepository.findById(projectId))
                 .thenReturn(Optional.empty());
 
         assertThrows(
                 ProjectNotFoundException.class,
-                () -> taskService.createTask(request)
+                () -> taskService.createTask(request, authentication)
         );
 
         verify(taskRepository, never()).save(any(Task.class));
@@ -195,9 +205,10 @@ class TaskServiceTest {
                 TaskPriority.MEDIUM,
                 dueDate,
                 projectId,
-                assignedUserId,
-                createdByUserId
+                assignedUserId
         );
+
+        org.springframework.security.core.Authentication authentication = mock(org.springframework.security.core.Authentication.class);
 
         when(projectRepository.findById(projectId))
                 .thenReturn(Optional.of(project));
@@ -207,7 +218,7 @@ class TaskServiceTest {
 
         assertThrows(
                 UserNotFoundException.class,
-                () -> taskService.createTask(request)
+                () -> taskService.createTask(request, authentication)
         );
 
         verify(taskRepository, never()).save(any(Task.class));
@@ -223,9 +234,11 @@ class TaskServiceTest {
                 TaskPriority.MEDIUM,
                 dueDate,
                 projectId,
-                assignedUserId,
-                createdByUserId
+                assignedUserId
         );
+
+        org.springframework.security.core.Authentication authentication = mock(org.springframework.security.core.Authentication.class);
+        when(authentication.getName()).thenReturn("unknown@example.com");
 
         when(projectRepository.findById(projectId))
                 .thenReturn(Optional.of(project));
@@ -233,12 +246,12 @@ class TaskServiceTest {
         when(userRepository.findById(assignedUserId))
                 .thenReturn(Optional.of(assignedUser));
 
-        when(userRepository.findById(createdByUserId))
+        when(userRepository.findByEmail("unknown@example.com"))
                 .thenReturn(Optional.empty());
 
         assertThrows(
                 UserNotFoundException.class,
-                () -> taskService.createTask(request)
+                () -> taskService.createTask(request, authentication)
         );
 
         verify(taskRepository, never()).save(any(Task.class));
@@ -529,6 +542,9 @@ class TaskServiceTest {
 
         when(userRepository.findById(createdByUserId))
                 .thenReturn(Optional.of(createdBy));
+
+        when(projectMemberRepository.existsByProjectIdAndUserId(projectId, assignedUserId))
+                .thenReturn(true);
 
         when(taskRepository.save(task))
                 .thenReturn(task);

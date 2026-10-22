@@ -137,7 +137,7 @@ class TaskControllerTest {
     @Test
     void createTask_shouldReturnCreated() throws Exception {
 
-        when(taskService.createTask(any(CreateTaskRequest.class)))
+        when(taskService.createTask(any(CreateTaskRequest.class), any()))
                 .thenReturn(taskResponse);
 
         mockMvc.perform(
@@ -170,7 +170,7 @@ class TaskControllerTest {
                         .value("Implement authentication"));
 
         verify(taskService)
-                .createTask(any(CreateTaskRequest.class));
+                .createTask(any(CreateTaskRequest.class), any());
     }
     @Test
     void getTaskById_shouldReturnOk() throws Exception {
@@ -287,7 +287,8 @@ class TaskControllerTest {
         when(taskService.getTasksByProject(
                 any(),
                 eq(1),
-                eq(5)
+                eq(5),
+                any()
         )).thenReturn(pageResponse);
 
         mockMvc.perform(
@@ -310,7 +311,7 @@ class TaskControllerTest {
                         .value(2));
 
         verify(taskService)
-                .getTasksByProject(any(), eq(1), eq(5));
+                .getTasksByProject(any(), eq(1), eq(5), any());
     }
 
     @Test
@@ -330,7 +331,8 @@ class TaskControllerTest {
         when(taskService.getTasksByProject(
                 any(),
                 eq(0),
-                eq(10)
+                eq(10),
+                any()
         )).thenReturn(pageResponse);
 
         mockMvc.perform(
@@ -344,7 +346,7 @@ class TaskControllerTest {
                         .value(10));
 
         verify(taskService)
-                .getTasksByProject(any(), eq(0), eq(10));
+                .getTasksByProject(any(), eq(0), eq(10), any());
     }
 
     @Test

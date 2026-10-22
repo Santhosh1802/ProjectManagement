@@ -86,6 +86,13 @@ class TaskSecurityIntegrationTest {
 
         projectMemberRepository.save(normalMember);
 
+        ProjectMember assignedMember = new ProjectMember();
+        assignedMember.setUser(assignedUser);
+        assignedMember.setProject(project);
+        assignedMember.setProjectRole(ProjectRole.MEMBER);
+
+        projectMemberRepository.save(assignedMember);
+
         task = new Task();
 
         task.setTitle("Security Task");
@@ -121,7 +128,7 @@ class TaskSecurityIntegrationTest {
         project.setDescription("Project for security testing");
         project.setProjectStatus(ProjectStatus.ACTIVE);
         project.setStartDate(Instant.now());
-        project.setDueDate(Instant.now().plus(30, ChronoUnit.DAYS));
+        project.setDueDate(Instant.now().plus(365, ChronoUnit.DAYS));
         project.setOwner(owner);
 
         return projectRepository.save(project);
