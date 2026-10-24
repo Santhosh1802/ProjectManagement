@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author", "replies", "replies.author"})
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author"})
     Page<Comment> findByTaskAndParentCommentIsNullOrderByCreatedAtAsc(Task task, Pageable pageable);
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author"})

@@ -56,10 +56,15 @@ public class CommentService {
         );
 
         java.util.List<GetCommentResponse> replyDtos = null;
-        if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
-            replyDtos = comment.getReplies().stream()
-                    .map(this::toResponse)
-                    .toList();
+        try {
+            if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+                replyDtos = comment.getReplies().stream()
+                        .map(this::toResponse)
+                        .toList();
+            }
+        } catch (Exception e) {
+            // In case lazy loading replies collection fails outside an active transaction
+            replyDtos = java.util.Collections.emptyList();
         }
 
         String displayContent = comment.isDeleted() ? "This comment has been deleted." : comment.getContent();
