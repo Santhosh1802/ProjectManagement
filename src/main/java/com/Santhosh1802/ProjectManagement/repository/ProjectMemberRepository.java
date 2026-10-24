@@ -22,6 +22,8 @@ public interface ProjectMemberRepository
             Pageable pageable
     );
 
+    java.util.List<ProjectMember> findByProjectId(UUID projectId);
+
     Page<ProjectMember> findByUserId(
             UUID userId,
             Pageable pageable
