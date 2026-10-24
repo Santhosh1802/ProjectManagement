@@ -13,7 +13,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "task_comments", indexes = {
         @Index(name = "idx_task_comments_task_id", columnList = "task_id"),
-        @Index(name = "idx_task_comments_created_at", columnList = "created_at")
+        @Index(name = "idx_task_comments_created_at", columnList = "created_at"),
+        @Index(name = "idx_task_comments_parent_id", columnList = "parent_comment_id")
 })
 @Getter
 @Setter
@@ -35,6 +36,17 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
+
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OrderBy("createdAt ASC")
+    private java.util.List<Comment> replies = new java.util.ArrayList<>();
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

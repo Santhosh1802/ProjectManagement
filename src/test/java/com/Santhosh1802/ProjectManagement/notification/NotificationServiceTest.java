@@ -223,4 +223,56 @@ class NotificationServiceTest {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("You do not own this notification");
     }
+
+    @Test
+    @DisplayName("Should delete notification when owned by authenticated user")
+    void shouldDeleteNotificationWhenOwned() {
+        UUID notifId = UUID.randomUUID();
+        Notification notification = Notification.builder()
+                .id(notifId)
+                .recipient(recipient)
+                .title("Assigned")
+                .message("Message")
+                .build();
+
+        when(userRepository.findByEmail(recipient.getEmail())).thenReturn(Optional.of(recipient));
+        when(notificationRepository.findById(notifId)).thenReturn(Optional.of(notification));
+
+        notificationService.deleteNotification(notifId, recipientAuth);
+
+        verify(notificationRepository).deleteByIdAndRecipient(notifId, recipient);
+    }
+
+    @Test
+    @DisplayName("Should reject deleting notification owned by another user")
+    void shouldRejectDeleteNotificationOwnedByOtherUser() {
+        UUID notifId = UUID.randomUUID();
+        Notification notification = Notification.builder()
+                .id(notifId)
+                .recipient(creator) // owned by Bob
+                .title("Assigned")
+                .message("Message")
+                .build();
+
+        when(userRepository.findByEmail(recipient.getEmail())).thenReturn(Optional.of(recipient));
+        when(notificationRepository.findById(notifId)).thenReturn(Optional.of(notification));
+
+        assertThatThrownBy(() -> notificationService.deleteNotification(notifId, recipientAuth))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("You do not own this notification");
+
+        verify(notificationRepository, never()).deleteByIdAndRecipient(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should bulk clear notifications for current user only")
+    void shouldBulkClearNotificationsForCurrentUser() {
+        when(userRepository.findByEmail(recipient.getEmail())).thenReturn(Optional.of(recipient));
+        when(notificationRepository.deleteAllByRecipient(recipient)).thenReturn(5);
+
+        int count = notificationService.deleteAllNotifications(recipientAuth);
+
+        assertThat(count).isEqualTo(5);
+        verify(notificationRepository).deleteAllByRecipient(recipient);
+    }
 }

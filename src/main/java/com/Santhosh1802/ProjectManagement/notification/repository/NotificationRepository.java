@@ -17,9 +17,19 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     Page<Notification> findByRecipientOrderByCreatedAtDesc(User recipient, Pageable pageable);
 
+    Page<Notification> findByRecipientAndIsReadOrderByCreatedAtDesc(User recipient, boolean isRead, Pageable pageable);
+
     long countByRecipientAndIsReadFalse(User recipient);
 
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.recipient = :recipient AND n.isRead = false")
     int markAllAsReadByRecipient(@Param("recipient") User recipient);
+
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.id = :id AND n.recipient = :recipient")
+    int deleteByIdAndRecipient(@Param("id") UUID id, @Param("recipient") User recipient);
+
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.recipient = :recipient")
+    int deleteAllByRecipient(@Param("recipient") User recipient);
 }

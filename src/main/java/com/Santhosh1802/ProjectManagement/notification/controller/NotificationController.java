@@ -29,11 +29,12 @@ public class NotificationController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<NotificationResponse>>> getMyNotifications(
+            @RequestParam(required = false) Boolean unreadOnly,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page cannot be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size cannot exceed 100") int size,
             Authentication authentication
     ) {
-        PageResponse<NotificationResponse> result = notificationService.getMyNotifications(authentication, page, size);
+        PageResponse<NotificationResponse> result = notificationService.getMyNotifications(authentication, unreadOnly, page, size);
         return ResponseEntity.ok(new ApiResponse<>(
                 LocalDateTime.now(),
                 HttpStatus.OK.value(),
@@ -75,6 +76,31 @@ public class NotificationController {
                 HttpStatus.OK.value(),
                 "All notifications marked as read",
                 Map.of("updatedCount", updatedCount)
+        ));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
+        notificationService.deleteNotification(id, authentication);
+        return ResponseEntity.ok(new ApiResponse<>(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "Notification deleted successfully",
+                null
+        ));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> deleteAllNotifications(Authentication authentication) {
+        int deletedCount = notificationService.deleteAllNotifications(authentication);
+        return ResponseEntity.ok(new ApiResponse<>(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "All notifications cleared successfully",
+                Map.of("deletedCount", deletedCount)
         ));
     }
 }

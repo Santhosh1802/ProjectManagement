@@ -71,4 +71,47 @@ public class CommentController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Edit a comment.
+     * PUT /api/comments/{commentId}
+     */
+    @PutMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<GetCommentResponse>> editComment(
+            @PathVariable UUID commentId,
+            @Valid @RequestBody com.Santhosh1802.ProjectManagement.comment.dto.request.UpdateCommentRequest request,
+            Authentication authentication
+    ) {
+        GetCommentResponse updated = commentService.editComment(commentId, request, authentication);
+
+        ApiResponse<GetCommentResponse> response = new ApiResponse<>(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "Comment updated successfully",
+                updated
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Delete a comment.
+     * DELETE /api/comments/{commentId}
+     */
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable UUID commentId,
+            Authentication authentication
+    ) {
+        commentService.deleteComment(commentId, authentication);
+
+        ApiResponse<Void> response = new ApiResponse<>(
+                LocalDateTime.now(),
+                HttpStatus.OK.value(),
+                "Comment deleted successfully",
+                null
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }

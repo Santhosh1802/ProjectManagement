@@ -15,8 +15,11 @@ import java.util.UUID;
 public class GetCommentResponse {
     private UUID id;
     private UUID taskId;
+    private UUID parentCommentId;
     private String content;
     private CommentAuthorResponse author;
+    private boolean isDeleted;
+    private java.util.List<GetCommentResponse> replies;
     private Instant createdAt;
     private Instant updatedAt;
 }

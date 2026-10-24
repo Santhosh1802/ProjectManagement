@@ -123,7 +123,7 @@ class CommentServiceTest {
     }
 
     @Test
-    @DisplayName("Should retrieve paginated comments for task")
+    @DisplayName("Should retrieve paginated comments for task with replies")
     void testGetCommentsByTask() {
         Comment comment = new Comment();
         comment.setId(commentId);
@@ -135,12 +135,108 @@ class CommentServiceTest {
 
         Page<Comment> page = new PageImpl<>(Collections.singletonList(comment), PageRequest.of(0, 10), 1);
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
-        when(commentRepository.findByTaskOrderByCreatedAtAsc(eq(task), any(PageRequest.class))).thenReturn(page);
+        when(commentRepository.findByTaskAndParentCommentIsNullOrderByCreatedAtAsc(eq(task), any(PageRequest.class))).thenReturn(page);
 
         PageResponse<GetCommentResponse> response = commentService.getCommentsByTask(taskId, 0, 10, authentication);
 
         assertEquals(1, response.getContent().size());
         assertEquals("Hello World", response.getContent().get(0).getContent());
         assertEquals(1, response.getTotalElements());
+    }
+
+    @Test
+    @DisplayName("Should successfully add a reply to an existing comment")
+    void testAddReplySuccess() {
+        Comment parent = new Comment();
+        parent.setId(commentId);
+        parent.setTask(task);
+        parent.setAuthor(author);
+
+        UUID replyId = UUID.randomUUID();
+        CreateCommentRequest request = new CreateCommentRequest(taskId, commentId, "This is a reply");
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(parent));
+        when(authentication.getName()).thenReturn("author@example.com");
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
+            Comment c = inv.getArgument(0);
+            c.setId(replyId);
+            c.setCreatedAt(Instant.now());
+            c.setUpdatedAt(Instant.now());
+            return c;
+        });
+
+        GetCommentResponse response = commentService.addComment(request, authentication);
+
+        assertNotNull(response);
+        assertEquals(replyId, response.getId());
+        assertEquals(commentId, response.getParentCommentId());
+        assertEquals("This is a reply", response.getContent());
+    }
+
+    @Test
+    @DisplayName("Should reject reply across different tasks")
+    void testRejectCrossTaskReply() {
+        Task differentTask = new Task();
+        differentTask.setId(UUID.randomUUID());
+
+        Comment parentOnOtherTask = new Comment();
+        parentOnOtherTask.setId(commentId);
+        parentOnOtherTask.setTask(differentTask);
+
+        CreateCommentRequest request = new CreateCommentRequest(taskId, commentId, "Cross-task reply");
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(parentOnOtherTask));
+        when(authentication.getName()).thenReturn("author@example.com");
+        when(userRepository.findByEmail("author@example.com")).thenReturn(Optional.of(author));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                commentService.addComment(request, authentication)
+        );
+
+        assertTrue(ex.getMessage().contains("Cannot reply to a comment belonging to a different task"));
+    }
+
+    @Test
+    @DisplayName("Should soft-delete comment when replies exist")
+    void testSoftDeleteCommentWithReplies() {
+        Comment comment = new Comment();
+        comment.setId(commentId);
+        comment.setAuthor(author);
+        comment.setTask(task);
+
+        Comment reply = new Comment();
+        reply.setId(UUID.randomUUID());
+        comment.setReplies(java.util.List.of(reply));
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        when(authentication.getName()).thenReturn("author@example.com");
+        when(authentication.getAuthorities()).thenReturn(Collections.emptyList());
+
+        commentService.deleteComment(commentId, authentication);
+
+        assertTrue(comment.isDeleted());
+        verify(commentRepository).save(comment);
+        verify(commentRepository, never()).delete(comment);
+    }
+
+    @Test
+    @DisplayName("Should hard-delete comment when no replies exist")
+    void testHardDeleteCommentWithoutReplies() {
+        Comment comment = new Comment();
+        comment.setId(commentId);
+        comment.setAuthor(author);
+        comment.setTask(task);
+        comment.setReplies(Collections.emptyList());
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        when(authentication.getName()).thenReturn("author@example.com");
+        when(authentication.getAuthorities()).thenReturn(Collections.emptyList());
+
+        commentService.deleteComment(commentId, authentication);
+
+        verify(commentRepository).delete(comment);
     }
 }

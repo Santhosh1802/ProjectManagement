@@ -60,12 +60,21 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<NotificationResponse> getMyNotifications(Authentication authentication, int page, int size) {
+    public PageResponse<NotificationResponse> getMyNotifications(Authentication authentication, Boolean unreadOnly, int page, int size) {
         User user = getCurrentUser(authentication);
-        Page<Notification> paged = notificationRepository.findByRecipientOrderByCreatedAtDesc(
-                user,
-                PageRequest.of(page, size)
-        );
+        Page<Notification> paged;
+        if (Boolean.TRUE.equals(unreadOnly)) {
+            paged = notificationRepository.findByRecipientAndIsReadOrderByCreatedAtDesc(
+                    user,
+                    false,
+                    PageRequest.of(page, size)
+            );
+        } else {
+            paged = notificationRepository.findByRecipientOrderByCreatedAtDesc(
+                    user,
+                    PageRequest.of(page, size)
+            );
+        }
 
         return new PageResponse<>(
                 paged.getContent().stream().map(this::toResponse).toList(),
@@ -103,6 +112,25 @@ public class NotificationService {
     public int markAllAsRead(Authentication authentication) {
         User user = getCurrentUser(authentication);
         return notificationRepository.markAllAsReadByRecipient(user);
+    }
+
+    @Transactional
+    public void deleteNotification(UUID notificationId, Authentication authentication) {
+        User user = getCurrentUser(authentication);
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new NotificationNotFoundException("Notification not found: " + notificationId));
+
+        if (!notification.getRecipient().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You do not own this notification");
+        }
+
+        notificationRepository.deleteByIdAndRecipient(notificationId, user);
+    }
+
+    @Transactional
+    public int deleteAllNotifications(Authentication authentication) {
+        User user = getCurrentUser(authentication);
+        return notificationRepository.deleteAllByRecipient(user);
     }
 
     // ==========================================

@@ -46,7 +46,7 @@ public class CommentService {
         this.eventPublisher = eventPublisher;
     }
 
-    private GetCommentResponse toResponse(Comment comment) {
+    public GetCommentResponse toResponse(Comment comment) {
         User author = comment.getAuthor();
         CommentAuthorResponse authorDto = new CommentAuthorResponse(
                 author.getId(),
@@ -55,18 +55,30 @@ public class CommentService {
                 author.getEmail()
         );
 
+        java.util.List<GetCommentResponse> replyDtos = null;
+        if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+            replyDtos = comment.getReplies().stream()
+                    .map(this::toResponse)
+                    .toList();
+        }
+
+        String displayContent = comment.isDeleted() ? "This comment has been deleted." : comment.getContent();
+
         return new GetCommentResponse(
                 comment.getId(),
                 comment.getTask().getId(),
-                comment.getContent(),
+                comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                displayContent,
                 authorDto,
+                comment.isDeleted(),
+                replyDtos,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );
     }
 
     /**
-     * Adds a comment to a task.
+     * Adds a comment or reply to a task.
      */
     @PreAuthorize("hasRole('ADMIN') or @commentAuthorization.canCommentOnTask(#request.taskId, authentication)")
     @Transactional
@@ -80,10 +92,28 @@ public class CommentService {
         User author = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new UserNotFoundException("Authenticated user not found"));
 
+        Comment parentComment = null;
+        if (request.getParentCommentId() != null) {
+            parentComment = commentRepository.findById(request.getParentCommentId())
+                    .orElseThrow(() -> new IllegalArgumentException("Parent comment not found: " + request.getParentCommentId()));
+
+            // Cross-task reply validation
+            if (!parentComment.getTask().getId().equals(task.getId())) {
+                throw new IllegalArgumentException("Cannot reply to a comment belonging to a different task");
+            }
+
+            // Nesting policy: 1 reply level (Instagram style). If parent itself is a reply, flatten to the root parent.
+            if (parentComment.getParentComment() != null) {
+                parentComment = parentComment.getParentComment();
+            }
+        }
+
         Comment comment = new Comment();
         comment.setContent(request.getContent());
         comment.setTask(task);
         comment.setAuthor(author);
+        comment.setParentComment(parentComment);
+        comment.setDeleted(false);
 
         Comment saved = commentRepository.save(comment);
 
@@ -101,7 +131,59 @@ public class CommentService {
     }
 
     /**
-     * Retrieves paginated comments for a task in chronological order.
+     * Edits an existing comment.
+     */
+    @Transactional
+    public GetCommentResponse editComment(
+            UUID commentId,
+            com.Santhosh1802.ProjectManagement.comment.dto.request.UpdateCommentRequest request,
+            Authentication authentication
+    ) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
+
+        if (comment.isDeleted()) {
+            throw new IllegalArgumentException("Cannot edit a deleted comment");
+        }
+
+        // Author-only or Admin authorization
+        boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !comment.getAuthor().getEmail().equals(authentication.getName())) {
+            throw new org.springframework.security.access.AccessDeniedException("You can only edit your own comments");
+        }
+
+        comment.setContent(request.getContent());
+        Comment updated = commentRepository.save(comment);
+        return toResponse(updated);
+    }
+
+    /**
+     * Deletes a comment. If it has replies, performs soft deletion (tombstone) to preserve thread integrity.
+     * Otherwise removes it directly.
+     */
+    @Transactional
+    public void deleteComment(UUID commentId, Authentication authentication) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
+
+        boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isAuthor = comment.getAuthor().getEmail().equals(authentication.getName());
+
+        if (!isAdmin && !isAuthor) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to delete this comment");
+        }
+
+        boolean hasReplies = comment.getReplies() != null && !comment.getReplies().isEmpty();
+        if (hasReplies) {
+            comment.setDeleted(true);
+            commentRepository.save(comment);
+        } else {
+            commentRepository.delete(comment);
+        }
+    }
+
+    /**
+     * Retrieves paginated top-level comments for a task in chronological order, with nested replies.
      */
     @PreAuthorize("hasRole('ADMIN') or @commentAuthorization.canCommentOnTask(#taskId, authentication)")
     public PageResponse<GetCommentResponse> getCommentsByTask(
@@ -113,7 +195,7 @@ public class CommentService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task of id: " + taskId + " not found"));
 
-        Page<Comment> commentPage = commentRepository.findByTaskOrderByCreatedAtAsc(
+        Page<Comment> commentPage = commentRepository.findByTaskAndParentCommentIsNullOrderByCreatedAtAsc(
                 task,
                 PageRequest.of(page, size)
         );
