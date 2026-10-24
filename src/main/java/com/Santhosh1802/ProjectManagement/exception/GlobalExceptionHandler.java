@@ -143,6 +143,24 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(com.Santhosh1802.ProjectManagement.exception.notification.NotificationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotificationNotFoundException(
+            com.Santhosh1802.ProjectManagement.exception.notification.NotificationNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Notification Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+
     @ExceptionHandler(ProjectAlreadyExistException.class)
     public ResponseEntity<ErrorResponse> handleProjectAlreadyExistException(ProjectAlreadyExistException ex, HttpServletRequest request){
         ErrorResponse error = new ErrorResponse(

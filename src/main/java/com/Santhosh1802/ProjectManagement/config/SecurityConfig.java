@@ -69,12 +69,14 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public endpoints
+                        // Public endpoints and WebSocket handshake
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
-                                "/api/auth/csrf"
+                                "/api/auth/csrf",
+                                "/ws/**"
                         ).permitAll()
+
 
                         // Authentication required
                         .requestMatchers("/api/auth/me")
