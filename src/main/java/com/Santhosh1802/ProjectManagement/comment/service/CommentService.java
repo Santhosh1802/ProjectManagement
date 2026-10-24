@@ -191,6 +191,7 @@ public class CommentService {
      * Retrieves paginated top-level comments for a task in chronological order, with nested replies.
      */
     @PreAuthorize("hasRole('ADMIN') or @commentAuthorization.canCommentOnTask(#taskId, authentication)")
+    @Transactional(readOnly = true)
     public PageResponse<GetCommentResponse> getCommentsByTask(
             @P("taskId") UUID taskId,
             int page,
